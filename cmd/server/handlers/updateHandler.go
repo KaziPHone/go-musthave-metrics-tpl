@@ -14,6 +14,7 @@ type Handler struct {
 }
 
 func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.URL.Path)
 	path := strings.Split(r.URL.Path, "/")
 
 	if path[1] != "update" {
