@@ -4,7 +4,7 @@ import "testing"
 
 func TestMemStorage_UpdateMetric(t *testing.T) {
 	type fields struct {
-		MetricTypes map[string]*metricType
+		MetricTypes map[string]*MetricType
 	}
 	type args struct {
 		metricName string
@@ -19,8 +19,8 @@ func TestMemStorage_UpdateMetric(t *testing.T) {
 		{
 			name: "test gauge",
 			fields: fields{
-				MetricTypes: map[string]*metricType{
-					"metricName": &metricType{
+				MetricTypes: map[string]*MetricType{
+					"metricName": &MetricType{
 						Gauge:   0,
 						Counter: 0,
 					},
@@ -35,8 +35,8 @@ func TestMemStorage_UpdateMetric(t *testing.T) {
 		{
 			name: "test counter",
 			fields: fields{
-				MetricTypes: map[string]*metricType{
-					"metricName": &metricType{
+				MetricTypes: map[string]*MetricType{
+					"metricName": &MetricType{
 						Gauge:   0,
 						Counter: 0,
 					},
