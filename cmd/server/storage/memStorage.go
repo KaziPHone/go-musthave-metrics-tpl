@@ -1,24 +1,24 @@
 package storage
 
 type MemStorage struct {
-	MetricTypes map[string]*metricType
+	MetricTypes map[string]*MetricType
 }
 
-type metricType struct {
+type MetricType struct {
 	Gauge   float64
 	Counter int64
 }
 
 func NewMemStorage() *MemStorage {
 	return &MemStorage{
-		MetricTypes: make(map[string]*metricType),
+		MetricTypes: make(map[string]*MetricType),
 	}
 }
 
 func (m *MemStorage) UpdateMetric(metricName, typeMetric string, value interface{}) {
 
 	if _, ok := m.MetricTypes[metricName]; !ok {
-		m.MetricTypes[metricName] = &metricType{
+		m.MetricTypes[metricName] = &MetricType{
 			Counter: 0,
 			Gauge:   0,
 		}
