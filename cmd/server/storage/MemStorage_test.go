@@ -17,7 +17,7 @@ func TestMemStorage_UpdateMetric(t *testing.T) {
 		args   args
 	}{
 		{
-			name: "test",
+			name: "test gauge",
 			fields: fields{
 				MetricTypes: map[string]*metricType{
 					"metricName": &metricType{
@@ -27,25 +27,51 @@ func TestMemStorage_UpdateMetric(t *testing.T) {
 				},
 			},
 			args: args{
-				metricName: "metricName",
+				metricName: "metricName gauge",
 				typeMetric: "gauge",
 				value:      100.0,
+			},
+		},
+		{
+			name: "test counter",
+			fields: fields{
+				MetricTypes: map[string]*metricType{
+					"metricName": &metricType{
+						Gauge:   0,
+						Counter: 0,
+					},
+				},
+			},
+			args: args{
+				metricName: "metricName counter",
+				typeMetric: "counter",
+				value:      int64(100),
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &MemStorage{
-				MetricTypes: tt.fields.MetricTypes,
-			}
+			m := NewMemStorage()
 			m.UpdateMetric(tt.args.metricName, tt.args.typeMetric, tt.args.value)
-			if m.MetricTypes[tt.args.metricName].Gauge != tt.args.value {
-				t.Errorf(
-					"expected %v, got %v",
-					tt.args.value,
-					m.MetricTypes[tt.args.metricName].Gauge,
-				)
+
+			if tt.args.typeMetric == "gauge" {
+				if m.MetricTypes[tt.args.metricName].Gauge != tt.args.value {
+					t.Errorf(
+						"expected %v, got %v",
+						tt.args.value,
+						m.MetricTypes[tt.args.metricName].Gauge,
+					)
+				}
+			} else {
+				if m.MetricTypes[tt.args.metricName].Counter != tt.args.value {
+					t.Errorf(
+						"expected %v, got %v",
+						tt.args.value,
+						m.MetricTypes[tt.args.metricName].Counter,
+					)
+				}
 			}
+
 		})
 	}
 }
