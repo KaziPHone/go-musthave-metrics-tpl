@@ -57,48 +57,63 @@ func (a *Agent) reportMetrics() {
 
 }
 
-func (a *Agent) monitoringMetrics() {
+func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
 	var memStats runtime.MemStats
 
 	for {
-		runtime.ReadMemStats(&memStats)
-		a.mu.Lock()
-		a.metrics["Alloc"] = float64(memStats.Alloc)
-		a.metrics["BuckHashSys"] = float64(memStats.BuckHashSys)
-		a.metrics["GCCPUFraction"] = memStats.GCCPUFraction
-		a.metrics["HeapAlloc"] = float64(memStats.HeapAlloc)
-		a.metrics["HeapIdle"] = float64(memStats.HeapIdle)
-		a.metrics["HeapInuse"] = float64(memStats.HeapInuse)
-		a.metrics["HeapObjects"] = float64(memStats.HeapObjects)
-		a.metrics["HeapReleased"] = float64(memStats.HeapReleased)
-		a.metrics["HeapSys"] = float64(memStats.HeapSys)
-		a.metrics["LastGC"] = float64(memStats.LastGC)
-		a.metrics["Lookups"] = float64(memStats.Lookups)
-		a.metrics["MCacheInuse"] = float64(memStats.MCacheInuse)
-		a.metrics["MCacheSys"] = float64(memStats.MCacheSys)
-		a.metrics["MSpanInuse"] = float64(memStats.MSpanInuse)
-		a.metrics["MSpanSys"] = float64(memStats.MSpanSys)
-		a.metrics["Mallocs"] = float64(memStats.Mallocs)
-		a.metrics["NextGC"] = float64(memStats.NextGC)
-		a.metrics["NumForcedGC"] = float64(memStats.NumForcedGC)
-		a.metrics["NumGC"] = float64(memStats.NumGC)
-		a.metrics["OtherSys"] = float64(memStats.OtherSys)
-		a.metrics["PauseTotalNs"] = float64(memStats.PauseTotalNs)
-		a.metrics["StackInuse"] = float64(memStats.StackInuse)
-		a.metrics["StackSys"] = float64(memStats.StackSys)
-		a.metrics["Sys"] = float64(memStats.Sys)
-		a.metrics["TotalAlloc"] = float64(memStats.TotalAlloc)
-		a.metrics["RandomValue"] = rand.Float64()
-		a.pollCount += 1
-		a.mu.Unlock()
-		fmt.Println("Update metrics")
-		time.Sleep(time.Duration(a.pollCount) * time.Second)
+		select {
+		case <-stopCh:
+			fmt.Println("Stop monitoring metrics in signal")
+			return
+		default:
+			runtime.ReadMemStats(&memStats)
+			a.mu.Lock()
+			a.metrics["Alloc"] = float64(memStats.Alloc)
+			a.metrics["BuckHashSys"] = float64(memStats.BuckHashSys)
+			a.metrics["GCCPUFraction"] = memStats.GCCPUFraction
+			a.metrics["HeapAlloc"] = float64(memStats.HeapAlloc)
+			a.metrics["HeapIdle"] = float64(memStats.HeapIdle)
+			a.metrics["HeapInuse"] = float64(memStats.HeapInuse)
+			a.metrics["HeapObjects"] = float64(memStats.HeapObjects)
+			a.metrics["HeapReleased"] = float64(memStats.HeapReleased)
+			a.metrics["HeapSys"] = float64(memStats.HeapSys)
+			a.metrics["LastGC"] = float64(memStats.LastGC)
+			a.metrics["Lookups"] = float64(memStats.Lookups)
+			a.metrics["MCacheInuse"] = float64(memStats.MCacheInuse)
+			a.metrics["MCacheSys"] = float64(memStats.MCacheSys)
+			a.metrics["MSpanInuse"] = float64(memStats.MSpanInuse)
+			a.metrics["MSpanSys"] = float64(memStats.MSpanSys)
+			a.metrics["Mallocs"] = float64(memStats.Mallocs)
+			a.metrics["NextGC"] = float64(memStats.NextGC)
+			a.metrics["NumForcedGC"] = float64(memStats.NumForcedGC)
+			a.metrics["NumGC"] = float64(memStats.NumGC)
+			a.metrics["OtherSys"] = float64(memStats.OtherSys)
+			a.metrics["PauseTotalNs"] = float64(memStats.PauseTotalNs)
+			a.metrics["StackInuse"] = float64(memStats.StackInuse)
+			a.metrics["StackSys"] = float64(memStats.StackSys)
+			a.metrics["Sys"] = float64(memStats.Sys)
+			a.metrics["TotalAlloc"] = float64(memStats.TotalAlloc)
+			a.metrics["RandomValue"] = rand.Float64()
+			a.pollCount += 1
+			a.mu.Unlock()
+			fmt.Println("Update metrics")
+			time.Sleep(time.Duration(a.pollCount) * time.Second)
+		}
+
 	}
 }
 
-func (a *Agent) Start() {
+func (a *Agent) Start(stopCh <-chan struct{}) {
 	fmt.Println("Start agent")
-	go a.monitoringMetrics()
+
+	monitoringStop := make(chan struct{})
+
+	go a.monitoringMetrics(monitoringStop)
 	go a.reportMetrics()
-	select {}
+
+	<-stopCh
+
+	close(monitoringStop)
+
+	fmt.Println("Agent stopped")
 }

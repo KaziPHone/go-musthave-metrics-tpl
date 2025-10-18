@@ -9,5 +9,6 @@ import (
 func main() {
 	fmt.Println("START AGENT")
 	agent := agent.NewAgent()
-	agent.Start()
+	stop := make(chan struct{})
+	agent.Start(stop)
 }
