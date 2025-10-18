@@ -15,7 +15,7 @@ func TestMonitoringMetrics(t *testing.T) {
 		"PauseTotalNs", "StackInuse", "StackSys", "Sys", "TotalAlloc", "RandomValue",
 	}
 
-	agent := NewAgent()
+	agent := NewAgent(10, 3, "localhost:8080")
 	stopCh := make(chan struct{})
 
 	done := make(chan struct{})
