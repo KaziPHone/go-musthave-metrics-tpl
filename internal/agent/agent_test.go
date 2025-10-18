@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestAgent_monitoringMetrics(t *testing.T) {
+func TestMonitoringMetrics(t *testing.T) {
 
 	expectedKeys := []string{
 		"Alloc", "BuckHashSys", "GCCPUFraction", "HeapAlloc", "HeapIdle",
