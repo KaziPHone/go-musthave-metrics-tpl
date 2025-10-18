@@ -12,19 +12,19 @@ import (
 )
 
 type Agent struct {
-	pollInterval   int8
-	reportInterval int8
+	pollInterval   int
+	reportInterval int
 	url            string
 	pollCount      int32
 	metrics        map[string]float64
 	mu             sync.Mutex
 }
 
-func NewAgent() *Agent {
+func NewAgent(pollInterval, reportInterval int, Host string) *Agent {
 	return &Agent{
-		pollInterval:   2,
-		reportInterval: 10,
-		url:            "http://localhost:8080/update",
+		pollInterval:   pollInterval,
+		reportInterval: reportInterval,
+		url:            "http://" + Host + "/update",
 		pollCount:      0,
 		metrics:        make(map[string]float64),
 		mu:             sync.Mutex{},
@@ -32,6 +32,7 @@ func NewAgent() *Agent {
 }
 
 func (a *Agent) sendRequest(typeMetric, metricName string, value string) {
+
 	resp, err := http.Post(a.url+"/"+typeMetric+"/"+metricName+"/"+value, "text/plain", bytes.NewBuffer(nil))
 
 	if err != nil {

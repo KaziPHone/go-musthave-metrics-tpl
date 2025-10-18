@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 
@@ -11,6 +12,9 @@ import (
 
 func main() {
 
+	serverHost := flag.String("a", "localhost:8080", "адрес HTTP-сервера")
+	flag.Parse()
+
 	router := chi.NewRouter()
 	storage := storage.NewMemStorage()
 	handler := &handlers.Handler{Storage: *storage}
@@ -19,8 +23,8 @@ func main() {
 	router.Get("/value/{typeMetric}/{nameMetric}", handler.GetMetricHandler)
 	router.Post("/update/{typeMetric}/{nameMetric}/{value}", handler.UpdateHandler)
 
-	log.Println("Starting server on :8080...")
-	err := http.ListenAndServe(":8080", router)
+	log.Printf("Starting server on:%s...", *serverHost)
+	err := http.ListenAndServe(*serverHost, router)
 	if err != nil {
 		log.Fatal(err)
 	}
