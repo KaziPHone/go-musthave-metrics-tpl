@@ -1,8 +1,10 @@
 package storage
 
-import "testing"
+import (
+	"testing"
+)
 
-func TestMemStorage_UpdateMetric(t *testing.T) {
+func TestMStorage_UpdateMetric(t *testing.T) {
 	type fields struct {
 		MetricTypes map[string]*MetricType
 	}
@@ -53,21 +55,22 @@ func TestMemStorage_UpdateMetric(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewMemStorage()
 			m.UpdateMetric(tt.args.metricName, tt.args.typeMetric, tt.args.value)
-
+			v := m.ListMetrics()
 			if tt.args.typeMetric == "gauge" {
-				if m.MetricTypes[tt.args.metricName].Gauge != tt.args.value {
+
+				if v[tt.args.metricName].Gauge != tt.args.value {
 					t.Errorf(
 						"expected %v, got %v",
 						tt.args.value,
-						m.MetricTypes[tt.args.metricName].Gauge,
+						v[tt.args.metricName].Gauge,
 					)
 				}
 			} else {
-				if m.MetricTypes[tt.args.metricName].Counter != tt.args.value {
+				if v[tt.args.metricName].Counter != tt.args.value {
 					t.Errorf(
 						"expected %v, got %v",
 						tt.args.value,
-						m.MetricTypes[tt.args.metricName].Counter,
+						v[tt.args.metricName].Counter,
 					)
 				}
 			}

@@ -4,33 +4,22 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/KaziPHone/go-musthave-metrics-tpl/cmd/server/storage"
+	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage"
+	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
-	Storage storage.MemStorage
+	Storage storage.IStorage
 }
 
 func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.URL.Path)
-	path := strings.Split(r.URL.Path, "/")
 
-	if path[1] != "update" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if len(path) != 5 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
+	typeMetric := chi.URLParam(r, "typeMetric")
+	nameMetric := chi.URLParam(r, "nameMetric")
+	valueStr := chi.URLParam(r, "value")
 
-	typeMetric := path[2]
-	metricName := path[3]
-	valueStr := path[4]
-
-	if metricName == "" || valueStr == "" {
+	if nameMetric == "" || valueStr == "" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -56,7 +45,11 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.Storage.UpdateMetric(metricName, typeMetric, value)
+	err = h.Storage.UpdateMetric(nameMetric, typeMetric, value)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Updated successfully")

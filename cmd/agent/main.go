@@ -21,8 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("START AGENT")
-	agent := agent.NewAgent(*reportInterval, *pollInterval, *host)
+	agentMetric := agent.NewAgent(*reportInterval, *pollInterval, *host)
 	stop := make(chan struct{})
-	agent.Start(stop)
+	agentMetric.Start(stop)
 }

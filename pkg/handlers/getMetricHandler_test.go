@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/KaziPHone/go-musthave-metrics-tpl/cmd/server/storage"
+	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +21,7 @@ func TestHandler_GetMetricHandler(t *testing.T) {
 	req = req.WithContext(ctx)
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, routeCtx))
 	type fields struct {
-		Storage storage.MemStorage
+		Storage storage.MStorage
 	}
 	type args struct {
 		w http.ResponseWriter
@@ -36,7 +36,7 @@ func TestHandler_GetMetricHandler(t *testing.T) {
 		{
 			name: "test",
 			fields: fields{
-				Storage: storage.MemStorage{
+				Storage: storage.MStorage{
 					MetricTypes: map[string]*storage.MetricType{
 						"test_metric": &storage.MetricType{
 							Gauge:   100.0,
@@ -51,7 +51,7 @@ func TestHandler_GetMetricHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &Handler{
-				Storage: tt.fields.Storage,
+				Storage: &tt.fields.Storage,
 			}
 			h.GetMetricHandler(respRec, req)
 			assert.Equal(t, respRec.Code, http.StatusOK, "expected status code to be 200")

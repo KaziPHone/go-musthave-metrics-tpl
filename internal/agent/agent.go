@@ -2,7 +2,6 @@ package agent
 
 import (
 	"bytes"
-	"fmt"
 	"math/rand/v2"
 	"net/http"
 	"runtime"
@@ -34,14 +33,10 @@ func NewAgent(pollInterval, reportInterval int, Host string) *Agent {
 func (a *Agent) sendRequest(typeMetric, metricName string, value string) {
 
 	resp, err := http.Post(a.url+"/"+typeMetric+"/"+metricName+"/"+value, "text/plain", bytes.NewBuffer(nil))
-
 	if err != nil {
-		fmt.Printf("Error (%s): %v\n", a.url+"/"+typeMetric+"/"+metricName+"/"+value, err)
 		return
 	}
-	fmt.Printf("%s: %s\n", a.url+"/"+typeMetric+"/"+metricName+"/"+value, resp.Status)
 	resp.Body.Close()
-	fmt.Println("Send metrics")
 }
 
 func (a *Agent) reportMetrics() {
@@ -64,7 +59,6 @@ func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
 	for {
 		select {
 		case <-stopCh:
-			fmt.Println("Stop monitoring metrics in signal")
 			return
 		default:
 			runtime.ReadMemStats(&memStats)
@@ -97,24 +91,16 @@ func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
 			a.metrics["RandomValue"] = rand.Float64()
 			a.pollCount += 1
 			a.mu.Unlock()
-			fmt.Println("Update metrics")
-			time.Sleep(time.Duration(a.pollCount) * time.Second)
+			time.Sleep(time.Duration(a.pollInterval) * time.Second)
 		}
 
 	}
 }
 
 func (a *Agent) Start(stopCh <-chan struct{}) {
-	fmt.Println("Start agent")
-
 	monitoringStop := make(chan struct{})
-
 	go a.monitoringMetrics(monitoringStop)
 	go a.reportMetrics()
-
 	<-stopCh
-
 	close(monitoringStop)
-
-	fmt.Println("Agent stopped")
 }

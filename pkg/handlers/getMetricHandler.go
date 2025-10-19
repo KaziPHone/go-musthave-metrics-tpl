@@ -13,7 +13,7 @@ func (h *Handler) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 	typeMetric := chi.URLParam(r, "typeMetric")
 	nameMetric := chi.URLParam(r, "nameMetric")
 
-	metric, ok := h.Storage.MetricTypes[nameMetric]
+	metric, ok := h.Storage.GetMetric(nameMetric)
 
 	if !ok || !(typeMetric == "gauge" || typeMetric == "counter") {
 		w.WriteHeader(http.StatusNotFound)
