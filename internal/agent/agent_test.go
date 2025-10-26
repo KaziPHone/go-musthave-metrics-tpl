@@ -3,6 +3,8 @@ package agent
 import (
 	"testing"
 	"time"
+
+	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 )
 
 func TestMonitoringMetrics(t *testing.T) {
@@ -15,7 +17,13 @@ func TestMonitoringMetrics(t *testing.T) {
 		"PauseTotalNs", "StackInuse", "StackSys", "Sys", "TotalAlloc", "RandomValue",
 	}
 
-	agent := NewAgent(10, 3, "localhost:8080")
+	cfg := config.AgentConfig{
+		Host:           "localhost:8080",
+		ReportInterval: 10,
+		PollInterval:   3,
+	}
+
+	agent := NewAgent(cfg)
 	stopCh := make(chan struct{})
 
 	done := make(chan struct{})
