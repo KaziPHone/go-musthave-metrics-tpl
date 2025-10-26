@@ -44,9 +44,9 @@ func TestMonitoringMetrics(t *testing.T) {
 	})
 
 	t.Run("Expected pollCount to be incremented", func(t *testing.T) {
-		if agent.pollCount != 1 {
+		if agent.pollCount != 2 {
 			t.Errorf(
-				"Expected pollCount to be 3, got %d",
+				"Expected pollCount to be 2, got %d",
 				agent.pollCount,
 			)
 		}
