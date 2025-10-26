@@ -14,7 +14,7 @@ type AgentConfig struct {
 	PollInterval   int    `env:"POLL_INTERVAL"`
 }
 
-func NewConfig() (*AgentConfig, error) {
+func NewConfigAgent() (*AgentConfig, error) {
 	cfg := &AgentConfig{}
 	err := cfg.initConfig()
 	return cfg, err

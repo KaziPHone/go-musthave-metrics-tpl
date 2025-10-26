@@ -15,7 +15,7 @@ func TestNewConfig_NormalCase(t *testing.T) {
 
 	defer resetEnvironmentVars()
 
-	cfg, err := NewConfig()
+	cfg, err := NewConfigAgent()
 	require.NoError(t, err)
 
 	expectedCfg := &AgentConfig{
@@ -35,7 +35,7 @@ func TestNewConfig_DefaultValues(t *testing.T) {
 
 	defer resetEnvironmentVars()
 
-	cfg, err := NewConfig()
+	cfg, err := NewConfigAgent()
 	require.NoError(t, err)
 
 	expectedCfg := &AgentConfig{

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
 
+	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/handlers"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage"
 	"github.com/go-chi/chi/v5"
@@ -12,8 +12,7 @@ import (
 
 func main() {
 
-	serverHost := flag.String("a", "localhost:8080", "адрес HTTP-сервера")
-	flag.Parse()
+	cfg := config.NewConfigServer()
 
 	router := chi.NewRouter()
 	memStorage := storage.NewMemStorage()
@@ -23,8 +22,8 @@ func main() {
 	router.Get("/value/{typeMetric}/{nameMetric}", h.GetMetricHandler)
 	router.Post("/update/{typeMetric}/{nameMetric}/{value}", h.UpdateHandler)
 
-	log.Printf("Starting server on:%s...", *serverHost)
-	err := http.ListenAndServe(*serverHost, router)
+	log.Printf("Starting server on:%s...", cfg.Host)
+	err := http.ListenAndServe(cfg.Host, router)
 	if err != nil {
 		log.Fatal(err)
 	}
