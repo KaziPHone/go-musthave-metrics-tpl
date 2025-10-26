@@ -23,8 +23,6 @@ func NewConfig() (*AgentConfig, error) {
 func (cfg *AgentConfig) initConfig() error {
 
 	err := env.Parse(cfg)
-	if err != nil {
-	}
 
 	if os.Getenv("ADDRESS") == "" {
 		flag.StringVar(&cfg.Host, "a", "localhost:8080", "адрес HTTP-сервера")
@@ -43,5 +41,5 @@ func (cfg *AgentConfig) initConfig() error {
 
 	flag.Parse()
 
-	return nil
+	return err
 }
