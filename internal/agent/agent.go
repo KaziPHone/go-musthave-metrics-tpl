@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 )
 
 type Agent struct {
@@ -19,11 +21,11 @@ type Agent struct {
 	mu             sync.Mutex
 }
 
-func NewAgent(pollInterval, reportInterval int, Host string) *Agent {
+func NewAgent(cfg config.AgentConfig) *Agent {
 	return &Agent{
-		pollInterval:   pollInterval,
-		reportInterval: reportInterval,
-		url:            "http://" + Host + "/update",
+		pollInterval:   cfg.PollInterval,
+		reportInterval: cfg.ReportInterval,
+		url:            "http://" + cfg.Host + "/update",
 		pollCount:      0,
 		metrics:        make(map[string]float64),
 		mu:             sync.Mutex{},
