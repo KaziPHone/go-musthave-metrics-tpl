@@ -8,6 +8,7 @@ import (
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/handlers"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
@@ -15,6 +16,7 @@ func main() {
 	cfg := config.NewConfigServer()
 
 	router := chi.NewRouter()
+	router.Use(middleware.Logger)
 	memStorage := storage.NewMemStorage()
 	h := &handlers.Handler{Storage: memStorage}
 
