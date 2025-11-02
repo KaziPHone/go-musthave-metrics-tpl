@@ -1,14 +1,13 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/handlers"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -16,7 +15,7 @@ func main() {
 	cfg := config.NewConfigServer()
 
 	router := chi.NewRouter()
-	router.Use(middleware.Logger)
+	router.Use(handlers.LoggingMiddleware)
 	memStorage := storage.NewMemStorage()
 	h := &handlers.Handler{Storage: memStorage}
 
@@ -24,9 +23,9 @@ func main() {
 	router.Get("/value/{typeMetric}/{nameMetric}", h.GetMetricHandler)
 	router.Post("/update/{typeMetric}/{nameMetric}/{value}", h.UpdateHandler)
 
-	log.Printf("Starting server on:%s...", cfg.Host)
+	log.Printf("Starting server on: %s...", cfg.Host)
 	err := http.ListenAndServe(cfg.Host, router)
 	if err != nil {
-		log.Fatal(err)
+		log.Err(err)
 	}
 }
