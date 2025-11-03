@@ -23,8 +23,8 @@ func main() {
 	router.Get("/", h.ListMetricsHandler)
 	router.Get("/value/{typeMetric}/{nameMetric}", h.GetMetricHandler)
 	router.Post("/update/{typeMetric}/{nameMetric}/{value}", h.UpdateValueHandler)
-	router.Post("/update", h.UpdateHandler)
-	router.Post("/value", h.ValueMetricHandler)
+	router.Post("/update/", h.UpdateHandler)
+	router.Post("/value/", h.ValueMetricHandler)
 
 	log.Printf("Starting server on: %s...", cfg.Host)
 	err := http.ListenAndServe(cfg.Host, router)

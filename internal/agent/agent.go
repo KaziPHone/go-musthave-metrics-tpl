@@ -26,7 +26,7 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 	return &Agent{
 		pollInterval:   cfg.PollInterval,
 		reportInterval: cfg.ReportInterval,
-		url:            "http://" + cfg.Host + "/update",
+		url:            "http://" + cfg.Host + "/update/",
 		pollCount:      0,
 		metrics:        make(map[string]float64),
 		mu:             sync.Mutex{},
