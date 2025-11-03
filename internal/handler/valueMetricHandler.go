@@ -14,10 +14,10 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 
 	metric, err := h.readerMetricRequest(r)
 
-	// if metric.MType == "counter" && metric.ID != "PollCount" {
-	// 	w.WriteHeader(http.StatusNotFound)
-	// 	return
-	// }
+	mResponse := models.Metrics{
+		ID:    metric.ID,
+		MType: metric.MType,
+	}
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -25,20 +25,16 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if v, ok := h.Storage.GetMetric(metric.ID); !ok {
-		resp, err := json.MarshalIndent(v, "", " ")
+		w.WriteHeader(http.StatusNotFound)
+		resp, err := json.MarshalIndent(mResponse, "", " ")
 		if err != nil {
 			w.Write([]byte(err.Error()))
-			return
 		} else {
 			w.Write(resp)
 		}
-		w.WriteHeader(http.StatusBadRequest)
 		return
 	} else {
-		mResponse := models.Metrics{
-			ID:    metric.ID,
-			MType: metric.MType,
-		}
+
 		if metric.MType == models.Gauge {
 			mResponse.Value = &v.Gauge
 		} else {
@@ -51,7 +47,6 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Write(resp)
-		w.WriteHeader(http.StatusOK)
 	}
 
 }
