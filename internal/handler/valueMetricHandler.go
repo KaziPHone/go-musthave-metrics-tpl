@@ -10,7 +10,7 @@ import (
 
 func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	metric, err := h.reader(r)
+	metric, err := h.readerMetricRequest(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))

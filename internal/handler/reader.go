@@ -8,7 +8,7 @@ import (
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 )
 
-func (h *Handler) reader(r *http.Request) (*models.Metrics, error) {
+func (h *Handler) readerMetricRequest(r *http.Request) (*models.Metrics, error) {
 	var buf bytes.Buffer
 	var metric models.Metrics
 

@@ -33,12 +33,13 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 	}
 }
 
-func (a *Agent) sendRequest(typeMetric, metricName string, value *float64) {
+func (a *Agent) sendRequest(typeMetric, metricName string, value *float64, delta *int64) {
 
 	met := models.Metrics{
 		ID:    metricName,
 		MType: typeMetric,
 		Value: value,
+		Delta: delta,
 	}
 
 	out, err := json.Marshal(met)
@@ -58,10 +59,10 @@ func (a *Agent) reportMetrics() {
 	for {
 		a.mu.Lock()
 		for key, value := range a.metrics {
-			a.sendRequest("gauge", key, &value)
+			a.sendRequest("gauge", key, &value, nil)
 		}
-		v := float64(a.pollCount)
-		a.sendRequest("counter", "PollCount", &v)
+		v := int64(a.pollCount)
+		a.sendRequest("counter", "PollCount", nil, &v)
 		a.mu.Unlock()
 		time.Sleep(time.Duration(a.reportInterval) * time.Second)
 	}

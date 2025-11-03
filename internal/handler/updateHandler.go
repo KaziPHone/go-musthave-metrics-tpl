@@ -58,7 +58,13 @@ func (h *Handler) UpdateValueHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
-	metric, err := h.reader(r)
+	metric, err := h.readerMetricRequest(r)
+
+	if metric.ID == "" || metric.MType == "" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
