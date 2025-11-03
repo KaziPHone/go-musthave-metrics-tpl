@@ -52,6 +52,13 @@ func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}
 
 	} else {
 		switch v := value.(type) {
+		case float64:
+			m.MetricTypes[metricName].Counter += int64(v)
+		case *float64:
+			if v == nil {
+				return fmt.Errorf("value is nil")
+			}
+			m.MetricTypes[metricName].Counter += int64(*v)
 		case int64:
 			m.MetricTypes[metricName].Counter += v
 		case *int64:
