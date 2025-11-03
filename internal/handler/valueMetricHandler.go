@@ -17,12 +17,14 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 	if v, ok := h.Storage.GetMetric(metric.ID); !ok {
 
 	} else {
+		if metric.Value == nil {
+			metric.Value = new(float64)
+		}
 		if metric.MType == "gauge" {
 			metric.Value = &v.Gauge
 		} else {
 			*metric.Value = float64(v.Counter)
 		}
-		metric.MType = "gauge"
 		resp, err := json.MarshalIndent(metric, "", " ")
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
