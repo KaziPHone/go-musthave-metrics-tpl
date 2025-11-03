@@ -41,7 +41,7 @@ func LoggingMiddleware(h http.Handler) http.Handler {
 
 		recorder := &responseRecorder{
 			ResponseWriter: w,
-			statusCode:     http.StatusBadRequest,
+			statusCode:     http.StatusOK,
 		}
 
 		h.ServeHTTP(recorder, r)

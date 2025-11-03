@@ -105,6 +105,8 @@ func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
 			a.metrics["Sys"] = float64(memStats.Sys)
 			a.metrics["TotalAlloc"] = float64(memStats.TotalAlloc)
 			a.metrics["RandomValue"] = rand.Float64()
+			a.metrics["Frees"] = float64(memStats.Frees)
+			a.metrics["GCSys"] = float64(memStats.GCSys)
 			a.pollCount += 1
 			a.mu.Unlock()
 			time.Sleep(time.Duration(a.pollInterval) * time.Second)
