@@ -65,7 +65,7 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.Storage.UpdateMetric(metric.ID, metric.MType, metric.Value)
+	err = h.Storage.UpdateMetricV2(*metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))

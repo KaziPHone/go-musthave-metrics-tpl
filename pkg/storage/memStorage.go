@@ -2,12 +2,15 @@ package storage
 
 import (
 	"fmt"
+
+	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 )
 
 type IStorage interface {
 	UpdateMetric(metricName, typeMetric string, value interface{}) error
 	ListMetrics() map[string]*MetricType
 	GetMetric(metricName string) (*MetricType, bool)
+	UpdateMetricV2(metric models.Metrics) error
 }
 
 type MStorage struct {
@@ -69,6 +72,27 @@ func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}
 		default:
 			return fmt.Errorf("unexpected type for counter: %T", value)
 		}
+	}
+	return nil
+}
+
+func (m *MStorage) UpdateMetricV2(metric models.Metrics) error {
+	if _, ok := m.MetricTypes[metric.ID]; !ok {
+		m.MetricTypes[metric.ID] = &MetricType{
+			Counter: 0,
+			Gauge:   0,
+		}
+	}
+	if metric.MType == models.Gauge {
+		if metric.Value == nil {
+			return fmt.Errorf("value is nil")
+		}
+		m.MetricTypes[metric.ID].Gauge = *metric.Value
+	} else {
+		if metric.Delta == nil {
+			return fmt.Errorf("value is nil")
+		}
+		m.MetricTypes[metric.ID].Counter += int64(*metric.Delta)
 	}
 	return nil
 }
