@@ -2,14 +2,15 @@ package agent
 
 import (
 	"bytes"
+	"encoding/json"
 	"math/rand/v2"
 	"net/http"
 	"runtime"
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
+	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 )
 
 type Agent struct {
@@ -32,9 +33,20 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 	}
 }
 
-func (a *Agent) sendRequest(typeMetric, metricName string, value string) {
+func (a *Agent) sendRequest(typeMetric, metricName string, value *float64) {
 
-	resp, err := http.Post(a.url+"/"+typeMetric+"/"+metricName+"/"+value, "text/plain", bytes.NewBuffer(nil))
+	met := models.Metrics{
+		ID:    metricName,
+		MType: typeMetric,
+		Value: value,
+	}
+
+	out, err := json.Marshal(met)
+	if err != nil {
+		return
+	}
+
+	resp, err := http.Post(a.url, "application/json", bytes.NewBuffer(out))
 	if err != nil {
 		return
 	}
@@ -46,9 +58,10 @@ func (a *Agent) reportMetrics() {
 	for {
 		a.mu.Lock()
 		for key, value := range a.metrics {
-			a.sendRequest("gauge", key, strconv.FormatFloat(value, 'f', -1, 64))
+			a.sendRequest("gauge", key, &value)
 		}
-		a.sendRequest("counter", "PollCount", strconv.Itoa(int(a.pollCount)))
+		v := float64(a.pollCount)
+		a.sendRequest("counter", "PollCount", &v)
 		a.mu.Unlock()
 		time.Sleep(time.Duration(a.reportInterval) * time.Second)
 	}

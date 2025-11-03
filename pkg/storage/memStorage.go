@@ -1,6 +1,6 @@
 package storage
 
-import "errors"
+import "fmt"
 
 type IStorage interface {
 	UpdateMetric(metricName, typeMetric string, value interface{}) error
@@ -32,19 +32,24 @@ func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}
 		}
 	}
 	if typeMetric == "gauge" {
-		if val, ok := value.(float64); !ok {
-			return errors.New("expected float64 for gauge metric")
-		} else {
-			m.MetricTypes[metricName].Gauge = val
+		switch v := value.(type) {
+		case float64:
+			m.MetricTypes[metricName].Gauge = v
+		case *float64:
+			m.MetricTypes[metricName].Gauge = *v
+		default:
+			return fmt.Errorf("unexpected type for gauge: %T", value)
 		}
 
 	} else {
-		if val, ok := value.(int64); !ok {
-			return errors.New("expected int64 for counter metric")
-		} else {
-			m.MetricTypes[metricName].Counter += val
+		switch v := value.(type) {
+		case int64:
+			m.MetricTypes[metricName].Counter += v
+		case *int64:
+			m.MetricTypes[metricName].Counter += *v
+		default:
+			return fmt.Errorf("unexpected type for counter: %T", value)
 		}
-
 	}
 	return nil
 }
