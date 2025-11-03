@@ -60,14 +60,19 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	metric, err := h.readerMetricRequest(r)
 
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
 	if metric.ID == "" || metric.MType == "" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+	if metric.MType == "counter" && metric.ID != "PollCount" {
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 

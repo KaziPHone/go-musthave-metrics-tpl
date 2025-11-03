@@ -29,7 +29,7 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 			ID:    metric.ID,
 			MType: metric.MType,
 		}
-		if metric.MType == "gauge" {
+		if metric.MType == models.Gauge {
 			mResponse.Value = &v.Gauge
 		} else {
 			mResponse.Delta = &v.Counter
