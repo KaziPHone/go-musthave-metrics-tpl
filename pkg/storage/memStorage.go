@@ -1,6 +1,8 @@
 package storage
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type IStorage interface {
 	UpdateMetric(metricName, typeMetric string, value interface{}) error
@@ -25,6 +27,10 @@ func NewMemStorage() IStorage {
 
 func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}) error {
 
+	if value == nil {
+		return fmt.Errorf("value is nil")
+	}
+
 	if _, ok := m.MetricTypes[metricName]; !ok {
 		m.MetricTypes[metricName] = &MetricType{
 			Counter: 0,
@@ -36,6 +42,9 @@ func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}
 		case float64:
 			m.MetricTypes[metricName].Gauge = v
 		case *float64:
+			if v == nil {
+				return fmt.Errorf("value is nil")
+			}
 			m.MetricTypes[metricName].Gauge = *v
 		default:
 			return fmt.Errorf("unexpected type for gauge: %T", value)
@@ -46,6 +55,9 @@ func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}
 		case int64:
 			m.MetricTypes[metricName].Counter += v
 		case *int64:
+			if v == nil {
+				return fmt.Errorf("value is nil")
+			}
 			m.MetricTypes[metricName].Counter += *v
 		default:
 			return fmt.Errorf("unexpected type for counter: %T", value)
