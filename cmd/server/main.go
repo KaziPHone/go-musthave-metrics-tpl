@@ -20,9 +20,9 @@ func main() {
 	memStorage := storage.NewMemStorage()
 	h := &handlers.Handler{Storage: memStorage}
 
-	router.Get("/", h.ListMetricsHandler)
-	router.Get("/value/{typeMetric}/{nameMetric}", h.GetMetricHandler)
-	router.Post("/update/{typeMetric}/{nameMetric}/{value}", h.UpdateValueHandler)
+	// router.Get("/", h.ListMetricsHandler)
+	// router.Get("/value/{typeMetric}/{nameMetric}", h.GetMetricHandler)
+	// router.Post("/update/{typeMetric}/{nameMetric}/{value}", h.UpdateValueHandler)
 	router.Post("/update/", h.UpdateHandler)
 	router.Post("/value/", h.ValueMetricHandler)
 
