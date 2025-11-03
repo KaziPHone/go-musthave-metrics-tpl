@@ -29,7 +29,7 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 		if metric.MType == "gauge" {
 			metric.Value = &v.Gauge
 		} else {
-			*metric.Value = float64(v.Counter)
+			metric.Delta = &v.Counter
 		}
 		resp, err := json.MarshalIndent(metric, "", " ")
 		if err != nil {
