@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"bytes"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -30,13 +28,6 @@ func LoggingMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// Читаем тело запроса
-		bodyBytes, _ := ioutil.ReadAll(r.Body)
-		r.Body.Close() // закрываем оригинальный поток
-
-		// Восстанавливаем тело запроса обратно в поток
-		r.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
-
 		recorder := &responseRecorder{
 			ResponseWriter: w,
 			statusCode:     http.StatusBadRequest,
@@ -50,7 +41,6 @@ func LoggingMiddleware(h http.Handler) http.Handler {
 			Int("status_code", recorder.statusCode).
 			Int("response_size_bytes", recorder.responseSize).
 			Dur("request_duration_ms", time.Since(start)).
-			Str("request_body", string(bodyBytes)).
 			Msg("")
 	})
 }

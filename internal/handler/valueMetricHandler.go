@@ -15,7 +15,13 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if v, ok := h.Storage.GetMetric(metric.ID); !ok {
-
+		resp, err := json.MarshalIndent(metric, "", " ")
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.Write(resp)
 	} else {
 		if metric.Value == nil {
 			metric.Value = new(float64)
