@@ -57,6 +57,7 @@ func (h *Handler) UpdateValueHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 
+	w.Header().Set("Content-Type", "application/json")
 	metric, err := h.reader(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -70,6 +71,5 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
