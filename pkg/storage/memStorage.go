@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"sync"
 
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 )
@@ -16,7 +15,6 @@ type IStorage interface {
 
 type MStorage struct {
 	MetricTypes map[string]*MetricType
-	mu          sync.Mutex
 }
 
 type MetricType struct {
@@ -81,8 +79,6 @@ func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}
 }
 
 func (m *MStorage) UpdateMetricV2(metric models.Metrics) error {
-	m.mu.Lock()         // Заблокировали доступ другим потокам
-	defer m.mu.Unlock() // Освобождение блокировки после завершения функции
 	if _, ok := m.MetricTypes[metric.ID]; !ok {
 		m.MetricTypes[metric.ID] = &MetricType{}
 	}
