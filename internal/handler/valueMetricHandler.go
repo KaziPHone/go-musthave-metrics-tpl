@@ -15,7 +15,7 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 	metric, err := h.readerMetricRequest(r)
 
 	if metric.MType == "counter" && metric.ID != "PollCount" {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
