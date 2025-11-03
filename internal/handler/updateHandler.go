@@ -71,11 +71,6 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if metric.MType == "counter" && metric.ID != "PollCount" {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	err = h.Storage.UpdateMetricV2(*metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
