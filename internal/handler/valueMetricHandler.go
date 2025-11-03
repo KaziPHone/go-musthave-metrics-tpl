@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 
 	"net/http"
+
+	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 )
 
 func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
@@ -15,7 +17,7 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if v, ok := h.Storage.GetMetric(metric.ID); !ok {
-		resp, err := json.MarshalIndent(metric, "", " ")
+		resp, err := json.MarshalIndent(v, "", " ")
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
@@ -23,22 +25,22 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(resp)
 	} else {
-		if metric.Value == nil {
-			metric.Value = new(float64)
+		mResponse := models.Metrics{
+			ID:    metric.ID,
+			MType: metric.MType,
 		}
 		if metric.MType == "gauge" {
-			metric.Value = &v.Gauge
+			mResponse.Value = &v.Gauge
 		} else {
-			metric.Delta = &v.Counter
+			mResponse.Delta = &v.Counter
 		}
-		resp, err := json.MarshalIndent(metric, "", " ")
+		resp, err := json.MarshalIndent(mResponse, "", " ")
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
 			return
 		}
 		w.Write(resp)
-
 		w.WriteHeader(http.StatusOK)
 	}
 
