@@ -29,7 +29,7 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Write(resp)
-
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 	}
 
