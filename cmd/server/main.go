@@ -15,9 +15,11 @@ func main() {
 	cfg := config.NewConfigServer()
 
 	router := chi.NewRouter()
-	router.Use(handlers.LoggingMiddleware)
 
-	// memStorage := storage.NewMemStorage()
+	router.Use(handlers.LoggingMiddleware)
+	router.Use(handlers.GzipRequestMiddleware)
+	router.Use(handlers.GzipResponseMiddleware)
+
 	h := &handlers.Handler{Storage: storage.NewMemStorage()}
 
 	router.Get("/", h.ListMetricsHandler)

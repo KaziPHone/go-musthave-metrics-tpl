@@ -2,7 +2,9 @@ package agent
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"math/rand/v2"
 	"net/http"
 	"runtime"
@@ -20,6 +22,7 @@ type Agent struct {
 	pollCount      int32
 	metrics        map[string]float64
 	mu             sync.Mutex
+	httpClient     *http.Client
 }
 
 func NewAgent(cfg config.AgentConfig) *Agent {
@@ -30,7 +33,27 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 		pollCount:      0,
 		metrics:        make(map[string]float64),
 		mu:             sync.Mutex{},
+		httpClient:     &http.Client{},
 	}
+}
+
+func compress(data []byte) ([]byte, error) {
+
+    var buf bytes.Buffer
+    gw := gzip.NewWriter(&buf)
+    _, err := gw.Write(data)
+    if err != nil {
+        return nil, fmt.Errorf("ошибка записи в gzip: %v", err)
+    }
+    err = gw.Flush()
+    if err != nil {
+        return nil, fmt.Errorf("ошибка flush gzip: %v", err)
+    }
+    err = gw.Close()
+    if err != nil {
+        return nil, fmt.Errorf("ошибка закрытия gzip: %v", err)
+    }
+    return buf.Bytes(), nil
 }
 
 func (a *Agent) sendRequest(typeMetric, metricName string, value *float64, delta *int64) {
@@ -44,11 +67,27 @@ func (a *Agent) sendRequest(typeMetric, metricName string, value *float64, delta
 
 	out, err := json.Marshal(met)
 	if err != nil {
+		fmt.Printf("Error marshalling: %v\n", err)
 		return
 	}
 
-	resp, err := http.Post(a.url, "application/json", bytes.NewBuffer(out))
+	compressedData, err := compress(out)
+    if err != nil {
+		fmt.Printf("Error compress: %v\n", err)
+        return
+    }
+
+	req, err := http.NewRequest("POST", a.url, bytes.NewReader(compressedData))
 	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Content-Encoding", "gzip")
+
+    resp, err := a.httpClient.Do(req)
+	if err != nil {
+		fmt.Printf("Error sending request: %v\n", err)
 		return
 	}
 	resp.Body.Close()
