@@ -3,7 +3,8 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
@@ -18,10 +19,10 @@ type IStorage interface {
 }
 
 type MStorage struct {
-	MetricTypes map[string]*MetricType
-	fileStorage string `env:"FILE_STORAGE_PATH"`
-	storeInterval int `env:"STORE_INTERVAL"`
-	restore bool `env:"RESTORE"`
+	MetricTypes    map[string]*MetricType
+	fileStorage    string `env:"FILE_STORAGE_PATH"`
+	storeInterval  int    `env:"STORE_INTERVAL"`
+	restore        bool   `env:"RESTORE"`
 	metricsStorage []models.Metrics
 }
 
@@ -33,17 +34,17 @@ type MetricType struct {
 
 func NewMemStorage(cfg config.ServerConfig) IStorage {
 	storage := &MStorage{
-		MetricTypes: make(map[string]*MetricType),
-		fileStorage: cfg.FileStorage,
-		storeInterval: cfg.StoreInterval,
-		restore: cfg.Restore,
+		MetricTypes:    make(map[string]*MetricType),
+		fileStorage:    cfg.FileStorage,
+		storeInterval:  cfg.StoreInterval,
+		restore:        cfg.Restore,
 		metricsStorage: []models.Metrics{},
 	}
 	storage.loadStorageFile()
 	if storage.storeInterval > 0 {
 		go storage.storageFileTicker()
 	}
-	
+
 	return storage
 }
 
@@ -134,16 +135,31 @@ func (m *MStorage) GetMetric(metricName string) (*MetricType, bool) {
 
 // loadStorageFile - загрузка метрик из файла
 func (m *MStorage) loadStorageFile() error {
-	
+
 	if m.restore {
 
-		data, err := ioutil.ReadFile(m.fileStorage)
+		data, err := os.ReadFile(m.fileStorage)
 		if err != nil {
 			return fmt.Errorf("не удалось прочитать файл %s: %v", m.fileStorage, err)
 		}
 		err = json.Unmarshal(data, &m.metricsStorage)
 		if err != nil {
 			return fmt.Errorf("ошибка десериализации JSON: %v", err)
+		}
+
+		for _, metric := range m.metricsStorage {
+			m.MetricTypes[metric.ID] = &MetricType{
+				Mtype: metric.MType,
+			}
+			if metric.MType == models.Gauge {
+				if metric.Value != nil {
+					m.MetricTypes[metric.ID].Gauge = *metric.Value
+				}
+			} else {
+				if metric.Delta != nil {
+					m.MetricTypes[metric.ID].Counter = int64(*metric.Delta)
+				}
+			}
 		}
 
 	}
@@ -153,18 +169,14 @@ func (m *MStorage) loadStorageFile() error {
 func (m *MStorage) storageFileTicker() {
 
 	if m.storeInterval <= 0 {
-        fmt.Println("Синхронное сохранение включено.")
-        return
-    }
-	fmt.Println("start ticker", m.storeInterval)
-    ticker := time.NewTicker(time.Duration(m.storeInterval) * time.Second)
-    defer ticker.Stop()
-	
+		return
+	}
+	ticker := time.NewTicker(time.Duration(m.storeInterval) * time.Second)
+	defer ticker.Stop()
 
 	for range ticker.C {
-		fmt.Println("saver ")
-        m.saveStorageMetrics()
-    }
+		m.saveStorageMetrics()
+	}
 }
 
 func (m *MStorage) updateMetricStorage(metric models.Metrics) {
@@ -176,15 +188,15 @@ func (m *MStorage) updateMetricStorage(metric models.Metrics) {
 
 	found := false
 	for i := range m.metricsStorage {
-		if m.metricsStorage[i].ID == metric.ID &&  m.metricsStorage[i].MType == metric.MType {
+		if m.metricsStorage[i].ID == metric.ID && m.metricsStorage[i].MType == metric.MType {
 			found = true
-			if  m.metricsStorage[i].MType == models.Gauge {
+			if m.metricsStorage[i].MType == models.Gauge {
 				m.metricsStorage[i].Value = metric.Value
 			} else {
 				*m.metricsStorage[i].Delta += *metric.Delta
 			}
 		}
-		
+
 	}
 	if !found {
 		m.metricsStorage = append(m.metricsStorage, metric)
@@ -193,13 +205,21 @@ func (m *MStorage) updateMetricStorage(metric models.Metrics) {
 
 func (m *MStorage) saveStorageMetrics() error {
 
+	dir, _ := filepath.Split(m.fileStorage)
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) && dir != "" {
+		// Директория не найдена, создаем её
+		err := os.MkdirAll(dir, 0755)
+		if err != nil {
+			fmt.Printf("Ошибка создания директории: %v\n", err)
+		}
+	}
+
 	jsonData, err := json.MarshalIndent(m.metricsStorage, "", "\t")
 	fmt.Println(err)
 
-	err = ioutil.WriteFile(m.fileStorage, jsonData, 0644)
+	err = os.WriteFile(m.fileStorage, jsonData, 0644)
 	fmt.Println(err)
-
-	fmt.Printf("Сохранились метрики в %s.\n", m.fileStorage)
 
 	return nil
 }
