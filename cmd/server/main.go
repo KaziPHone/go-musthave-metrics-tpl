@@ -17,8 +17,8 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(handlers.LoggingMiddleware)
 
-	memStorage := storage.NewMemStorage()
-	h := &handlers.Handler{Storage: memStorage}
+	// memStorage := storage.NewMemStorage()
+	h := &handlers.Handler{Storage: storage.NewMemStorage()}
 
 	router.Get("/", h.ListMetricsHandler)
 	router.Get("/value/{typeMetric}/{nameMetric}", h.GetMetricHandler)
