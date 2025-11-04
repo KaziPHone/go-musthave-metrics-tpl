@@ -20,7 +20,7 @@ func main() {
 	router.Use(handlers.GzipRequestMiddleware)
 	router.Use(handlers.GzipResponseMiddleware)
 
-	h := &handlers.Handler{Storage: storage.NewMemStorage()}
+	h := &handlers.Handler{Storage: storage.NewMemStorage(*cfg)}
 
 	router.Get("/", h.ListMetricsHandler)
 	router.Get("/value/{typeMetric}/{nameMetric}", h.GetMetricHandler)
