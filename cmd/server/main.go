@@ -24,7 +24,7 @@ func main() {
 
 	router.Get("/", h.ListMetricsHandler)
 	router.Get("/value/{typeMetric}/{nameMetric}", h.GetMetricHandler)
-	router.Get("/ping", h.GetPingDbHandler)
+	router.Get("/ping", h.GetPingDBHandler)
 
 	router.Post("/update/{typeMetric}/{nameMetric}/{value}", h.UpdateValueHandler)
 	router.Post("/update/", h.UpdateHandler)
