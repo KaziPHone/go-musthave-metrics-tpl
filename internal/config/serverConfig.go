@@ -36,6 +36,10 @@ func NewConfigServer() *ServerConfig {
 		flag.BoolVar(&cfg.Restore, "r", false, "Восстановление данных из файла, если он существует")
 	}
 
+	if os.Getenv("DATABASE_DSN") == "" {
+		flag.StringVar(&cfg.DataBaseDsn, "d", "", "Строка подключения к базе данных")
+	}
+
 
 	flag.Parse()
 

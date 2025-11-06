@@ -70,6 +70,10 @@ func (m *MStorage) storageFileTicker() {
 
 func (m *MStorage) saveStorageMetrics() {
 
+	if m.dataBase.dataBaseDsn != "" {
+		return
+	}
+
 	metrics := make([]models.Metrics, 0)
 	for id, metric := range m.MetricTypes {
 		if metric.Mtype == models.Gauge {
