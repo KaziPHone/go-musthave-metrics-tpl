@@ -12,6 +12,7 @@ type ServerConfig struct {
 	FileStorage string `env:"FILE_STORAGE_PATH"`
 	StoreInterval int `env:"STORE_INTERVAL"`
 	Restore bool `env:"RESTORE"`
+	DataBaseDsn string `env:"DATABASE_DSN"`
 }
 
 func NewConfigServer() *ServerConfig {
