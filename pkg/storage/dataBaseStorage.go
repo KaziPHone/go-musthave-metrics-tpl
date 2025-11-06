@@ -36,12 +36,12 @@ func (m *MStorage) initDataBase() {
 	m.dataBase.isConnected = true
 	m.dataBase.db = db
 
-	m.migrateDb()
+	m.migrateDB()
 
 	log.Print("Database connected...")
 }
 
-func (m *MStorage) migrateDb() {
+func (m *MStorage) migrateDB() {
 
 	driver, err := postgres.WithInstance(m.dataBase.db, &postgres.Config{})
 	if err != nil {
@@ -50,7 +50,7 @@ func (m *MStorage) migrateDb() {
 	}
 
 	migrator, err := migrate.NewWithDatabaseInstance(
-		"file://../.././migrations",
+		"file://./migrations",
 		"postgres",
 		driver,
 	)
