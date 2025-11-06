@@ -65,4 +65,6 @@ func (m *MStorage) migrateDB() {
 		log.Printf("migration failed: %v\n", err)
 		return
 	}
+
+	log.Print("migration success")
 }

@@ -109,8 +109,6 @@ func (m *MStorage) saveStorageMetrics() {
 	if err != nil {
 		log.Err(err)
 	}
-
-	fmt.Println("save to file")
 }
 
 func (m *MStorage) GracefulStop(server *http.Server) {
