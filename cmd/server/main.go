@@ -28,6 +28,13 @@ func main() {
 	router.Post("/update/", h.UpdateHandler)
 	router.Post("/value/", h.ValueMetricHandler)
 
+	server := &http.Server{
+		Addr: cfg.Host,
+		Handler: router,
+	}
+
+	h.Storage.GracefulStop(server)
+
 	log.Printf("Starting server on: %s...", cfg.Host)
 	err := http.ListenAndServe(cfg.Host, router)
 	if err != nil {

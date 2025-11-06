@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage"
 	"github.com/go-chi/chi/v5"
 )
@@ -71,7 +72,12 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.Storage.UpdateMetricV2(*metric)
+	if metric.MType == models.Gauge {
+		err = h.Storage.UpdateMetric(metric.ID, metric.MType, metric.Value)
+	} else {
+		err = h.Storage.UpdateMetric(metric.ID, metric.MType, metric.Delta)
+	}
+
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))

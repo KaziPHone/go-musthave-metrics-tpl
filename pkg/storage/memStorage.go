@@ -3,8 +3,11 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
@@ -16,7 +19,7 @@ type IStorage interface {
 	UpdateMetric(metricName, typeMetric string, value interface{}) error
 	ListMetrics() map[string]*MetricType
 	GetMetric(metricName string) (*MetricType, bool)
-	UpdateMetricV2(metric models.Metrics) error
+	GracefulStop(server *http.Server)
 }
 
 type MStorage struct {
@@ -24,7 +27,6 @@ type MStorage struct {
 	fileStorage    string `env:"FILE_STORAGE_PATH"`
 	storeInterval  int    `env:"STORE_INTERVAL"`
 	restore        bool   `env:"RESTORE"`
-	metricsStorage []models.Metrics
 }
 
 type MetricType struct {
@@ -39,7 +41,6 @@ func NewMemStorage(cfg config.ServerConfig) IStorage {
 		fileStorage:    cfg.FileStorage,
 		storeInterval:  cfg.StoreInterval,
 		restore:        cfg.Restore,
-		metricsStorage: []models.Metrics{},
 	}
 	storage.loadStorageFile()
 	if storage.storeInterval > 0 {
@@ -95,33 +96,11 @@ func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}
 		}
 		m.MetricTypes[metricName].Mtype = typeMetric
 	}
-	return nil
-}
 
-// UpdateMetricV2 - обновление метрик по /update через json
-func (m *MStorage) UpdateMetricV2(metric models.Metrics) error {
-	if _, ok := m.MetricTypes[metric.ID]; !ok {
-		m.MetricTypes[metric.ID] = &MetricType{}
-	}
-
-	if metric.MType == models.Gauge {
-		if metric.Value == nil {
-			return fmt.Errorf("value is nil")
-		}
-		m.MetricTypes[metric.ID].Gauge = *metric.Value
-
-	} else {
-		if metric.Delta == nil {
-			return fmt.Errorf("value is nil")
-		}
-		m.MetricTypes[metric.ID].Counter += int64(*metric.Delta)
-	}
-	m.MetricTypes[metric.ID].Mtype = metric.MType
-
-	m.updateMetricStorage(metric)
 	if m.storeInterval == 0 {
 		m.saveStorageMetrics()
 	}
+
 	return nil
 }
 
@@ -134,8 +113,9 @@ func (m *MStorage) GetMetric(metricName string) (*MetricType, bool) {
 	return metric, found
 }
 
-// loadStorageFile - загрузка метрик из файла
 func (m *MStorage) loadStorageFile() error {
+
+	metricsStorage := make([]models.Metrics, 0)
 
 	if m.restore {
 
@@ -143,12 +123,12 @@ func (m *MStorage) loadStorageFile() error {
 		if err != nil {
 			return fmt.Errorf("не удалось прочитать файл %s: %v", m.fileStorage, err)
 		}
-		err = json.Unmarshal(data, &m.metricsStorage)
+		err = json.Unmarshal(data, &metricsStorage)
 		if err != nil {
 			return fmt.Errorf("ошибка десериализации JSON: %v", err)
 		}
 
-		for _, metric := range m.metricsStorage {
+		for _, metric := range metricsStorage {
 			m.MetricTypes[metric.ID] = &MetricType{
 				Mtype: metric.MType,
 			}
@@ -180,31 +160,24 @@ func (m *MStorage) storageFileTicker() {
 	}
 }
 
-func (m *MStorage) updateMetricStorage(metric models.Metrics) {
-
-	if len(m.metricsStorage) == 0 {
-		m.metricsStorage = append(m.metricsStorage, metric)
-		return
-	}
-
-	found := false
-	for i := range m.metricsStorage {
-		if m.metricsStorage[i].ID == metric.ID && m.metricsStorage[i].MType == metric.MType {
-			found = true
-			if m.metricsStorage[i].MType == models.Gauge {
-				m.metricsStorage[i].Value = metric.Value
-			} else {
-				*m.metricsStorage[i].Delta += *metric.Delta
-			}
-		}
-
-	}
-	if !found {
-		m.metricsStorage = append(m.metricsStorage, metric)
-	}
-}
-
 func (m *MStorage) saveStorageMetrics() {
+
+	metrics := make([]models.Metrics, 0)
+	for id, metric := range m.MetricTypes {
+		if metric.Mtype == models.Gauge {
+			metrics = append(metrics, models.Metrics{
+				ID:    id,
+				MType: metric.Mtype,
+				Value: &metric.Gauge,
+			})
+		} else {
+			metrics = append(metrics, models.Metrics{
+				ID:    id,
+				MType: metric.Mtype,
+				Delta: &metric.Counter,
+			})
+		}
+	}
 
 	dir, _ := filepath.Split(m.fileStorage)
 
@@ -215,7 +188,7 @@ func (m *MStorage) saveStorageMetrics() {
 		}
 	}
 
-	jsonData, err := json.MarshalIndent(m.metricsStorage, "", "\t")
+	jsonData, err := json.MarshalIndent(metrics, "", "\t")
 	if err != nil {
 		log.Err(err)
 	}
@@ -224,4 +197,17 @@ func (m *MStorage) saveStorageMetrics() {
 	if err != nil {
 		log.Err(err)
 	}
+
+	fmt.Println("save to file")
+}
+
+func (m *MStorage) GracefulStop(server *http.Server) {
+	stopChan := make(chan os.Signal, 1)
+    signal.Notify(stopChan, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+        <-stopChan
+		m.saveStorageMetrics()
+        log.Print("Signal received, initiating save storage and graceful shutdown ...")
+		os.Exit(0)
+	}()
 }
