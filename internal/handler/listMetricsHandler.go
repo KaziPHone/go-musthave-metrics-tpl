@@ -11,4 +11,5 @@ func (h *Handler) ListMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	for key, val := range h.Storage.ListMetrics() {
 		fmt.Fprintf(w, "%s: Counter=%v, Gauge=%v<br>", key, val.Counter, val.Gauge)
 	}
+	w.WriteHeader(http.StatusOK)
 }

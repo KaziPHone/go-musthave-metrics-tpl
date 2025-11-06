@@ -2,12 +2,17 @@ package agent
 
 import (
 	"bytes"
+	"compress/gzip"
+	"encoding/json"
+	"fmt"
 	"math/rand/v2"
 	"net/http"
 	"runtime"
-	"strconv"
 	"sync"
 	"time"
+
+	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
+	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 )
 
 type Agent struct {
@@ -17,23 +22,72 @@ type Agent struct {
 	pollCount      int32
 	metrics        map[string]float64
 	mu             sync.Mutex
+	httpClient     *http.Client
 }
 
-func NewAgent(pollInterval, reportInterval int, Host string) *Agent {
+func NewAgent(cfg config.AgentConfig) *Agent {
 	return &Agent{
-		pollInterval:   pollInterval,
-		reportInterval: reportInterval,
-		url:            "http://" + Host + "/update",
+		pollInterval:   cfg.PollInterval,
+		reportInterval: cfg.ReportInterval,
+		url:            "http://" + cfg.Host + "/update/",
 		pollCount:      0,
 		metrics:        make(map[string]float64),
 		mu:             sync.Mutex{},
+		httpClient:     &http.Client{},
 	}
 }
 
-func (a *Agent) sendRequest(typeMetric, metricName string, value string) {
+func compress(data []byte) ([]byte, error) {
 
-	resp, err := http.Post(a.url+"/"+typeMetric+"/"+metricName+"/"+value, "text/plain", bytes.NewBuffer(nil))
+    var buf bytes.Buffer
+    gw := gzip.NewWriter(&buf)
+    _, err := gw.Write(data)
+    if err != nil {
+        return nil, fmt.Errorf("ошибка записи в gzip: %v", err)
+    }
+    err = gw.Flush()
+    if err != nil {
+        return nil, fmt.Errorf("ошибка flush gzip: %v", err)
+    }
+    err = gw.Close()
+    if err != nil {
+        return nil, fmt.Errorf("ошибка закрытия gzip: %v", err)
+    }
+    return buf.Bytes(), nil
+}
+
+func (a *Agent) sendRequest(typeMetric, metricName string, value *float64, delta *int64) {
+
+	met := models.Metrics{
+		ID:    metricName,
+		MType: typeMetric,
+		Value: value,
+		Delta: delta,
+	}
+
+	out, err := json.Marshal(met)
 	if err != nil {
+		fmt.Printf("Error marshalling: %v\n", err)
+		return
+	}
+
+	compressedData, err := compress(out)
+    if err != nil {
+		fmt.Printf("Error compress: %v\n", err)
+        return
+    }
+
+	req, err := http.NewRequest("POST", a.url, bytes.NewReader(compressedData))
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Content-Encoding", "gzip")
+
+    resp, err := a.httpClient.Do(req)
+	if err != nil {
+		fmt.Printf("Error sending request: %v\n", err)
 		return
 	}
 	resp.Body.Close()
@@ -44,9 +98,10 @@ func (a *Agent) reportMetrics() {
 	for {
 		a.mu.Lock()
 		for key, value := range a.metrics {
-			a.sendRequest("gauge", key, strconv.FormatFloat(value, 'f', -1, 64))
+			a.sendRequest("gauge", key, &value, nil)
 		}
-		a.sendRequest("counter", "PollCount", strconv.Itoa(int(a.pollCount)))
+		v := int64(a.pollCount)
+		a.sendRequest("counter", "PollCount", nil, &v)
 		a.mu.Unlock()
 		time.Sleep(time.Duration(a.reportInterval) * time.Second)
 	}
@@ -89,6 +144,8 @@ func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
 			a.metrics["Sys"] = float64(memStats.Sys)
 			a.metrics["TotalAlloc"] = float64(memStats.TotalAlloc)
 			a.metrics["RandomValue"] = rand.Float64()
+			a.metrics["Frees"] = float64(memStats.Frees)
+			a.metrics["GCSys"] = float64(memStats.GCSys)
 			a.pollCount += 1
 			a.mu.Unlock()
 			time.Sleep(time.Duration(a.pollInterval) * time.Second)

@@ -1,31 +1,43 @@
 package main
 
 import (
-	"flag"
-	"log"
 	"net/http"
 
-	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/handlers"
+	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
+	handlers "github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage"
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
 
-	serverHost := flag.String("a", "localhost:8080", "адрес HTTP-сервера")
-	flag.Parse()
+	cfg := config.NewConfigServer()
 
 	router := chi.NewRouter()
-	memStorage := storage.NewMemStorage()
-	h := &handlers.Handler{Storage: memStorage}
+
+	router.Use(handlers.LoggingMiddleware)
+	router.Use(handlers.GzipRequestMiddleware)
+	router.Use(handlers.GzipResponseMiddleware)
+
+	h := &handlers.Handler{Storage: storage.NewMemStorage(*cfg)}
 
 	router.Get("/", h.ListMetricsHandler)
 	router.Get("/value/{typeMetric}/{nameMetric}", h.GetMetricHandler)
-	router.Post("/update/{typeMetric}/{nameMetric}/{value}", h.UpdateHandler)
+	router.Post("/update/{typeMetric}/{nameMetric}/{value}", h.UpdateValueHandler)
+	router.Post("/update/", h.UpdateHandler)
+	router.Post("/value/", h.ValueMetricHandler)
 
-	log.Printf("Starting server on:%s...", *serverHost)
-	err := http.ListenAndServe(*serverHost, router)
+	server := &http.Server{
+		Addr: cfg.Host,
+		Handler: router,
+	}
+
+	h.Storage.GracefulStop(server)
+
+	log.Printf("Starting server on: %s...", cfg.Host)
+	err := http.ListenAndServe(cfg.Host, router)
 	if err != nil {
-		log.Fatal(err)
+		log.Err(err)
 	}
 }

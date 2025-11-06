@@ -1,0 +1,167 @@
+[
+	{
+		"id": "PollCount",
+		"type": "counter",
+		"delta": 320
+	},
+	{
+		"id": "MCacheSys",
+		"type": "gauge",
+		"value": 15704
+	},
+	{
+		"id": "OtherSys",
+		"type": "gauge",
+		"value": 917535
+	},
+	{
+		"id": "PauseTotalNs",
+		"type": "gauge",
+		"value": 0
+	},
+	{
+		"id": "LastGC",
+		"type": "gauge",
+		"value": 0
+	},
+	{
+		"id": "NextGC",
+		"type": "gauge",
+		"value": 4194304
+	},
+	{
+		"id": "NumGC",
+		"type": "gauge",
+		"value": 0
+	},
+	{
+		"id": "StackSys",
+		"type": "gauge",
+		"value": 327680
+	},
+	{
+		"id": "Sys",
+		"type": "gauge",
+		"value": 6966288
+	},
+	{
+		"id": "TotalAlloc",
+		"type": "gauge",
+		"value": 1067056
+	},
+	{
+		"id": "RandomValue",
+		"type": "gauge",
+		"value": 0.7500817463425985
+	},
+	{
+		"id": "Frees",
+		"type": "gauge",
+		"value": 45
+	},
+	{
+		"id": "HeapAlloc",
+		"type": "gauge",
+		"value": 1067056
+	},
+	{
+		"id": "HeapInuse",
+		"type": "gauge",
+		"value": 1654784
+	},
+	{
+		"id": "HeapObjects",
+		"type": "gauge",
+		"value": 1027
+	},
+	{
+		"id": "HeapReleased",
+		"type": "gauge",
+		"value": 2080768
+	},
+	{
+		"id": "MSpanSys",
+		"type": "gauge",
+		"value": 48960
+	},
+	{
+		"id": "Mallocs",
+		"type": "gauge",
+		"value": 1072
+	},
+	{
+		"id": "StackInuse",
+		"type": "gauge",
+		"value": 327680
+	},
+	{
+		"id": "BuckHashSys",
+		"type": "gauge",
+		"value": 3289
+	},
+	{
+		"id": "HeapIdle",
+		"type": "gauge",
+		"value": 2211840
+	},
+	{
+		"id": "MSpanInuse",
+		"type": "gauge",
+		"value": 34080
+	},
+	{
+		"id": "NumForcedGC",
+		"type": "gauge",
+		"value": 0
+	},
+	{
+		"id": "GCSys",
+		"type": "gauge",
+		"value": 1786496
+	},
+	{
+		"id": "Alloc",
+		"type": "gauge",
+		"value": 1067056
+	},
+	{
+		"id": "GCCPUFraction",
+		"type": "gauge",
+		"value": 0
+	},
+	{
+		"id": "HeapSys",
+		"type": "gauge",
+		"value": 3866624
+	},
+	{
+		"id": "Lookups",
+		"type": "gauge",
+		"value": 0
+	},
+	{
+		"id": "MCacheInuse",
+		"type": "gauge",
+		"value": 12080
+	},
+	{
+		"id": "GetSet230",
+		"type": "counter",
+		"delta": 1375213583
+	},
+	{
+		"id": "GetSet52",
+		"type": "gauge",
+		"value": 132242.88723077654
+	},
+	{
+		"id": "GetSet198",
+		"type": "counter",
+		"delta": 1769028913
+	},
+	{
+		"id": "GetSet118",
+		"type": "gauge",
+		"value": 326882.52025948674
+	}
+]

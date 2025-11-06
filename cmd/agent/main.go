@@ -1,27 +1,22 @@
 package main
 
 import (
-	"flag"
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/agent"
+	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 )
 
 func main() {
+	cfg, err := config.NewConfigAgent()
 
-	host := flag.String("a", "localhost:8080", "адрес HTTP-сервера")
-	reportInterval := flag.Int("r", 10, "частота отправки метрик на сервер (по умолчанию 10 секунд)")
-	pollInterval := flag.Int("p", 3, "частота опроса метрик из пакета runtime (по умолчанию 2 секунды)")
-	flag.Parse()
-
-	args := flag.Args()
-	if len(args) > 0 {
-		fmt.Fprintln(os.Stderr, "Ошибка: переданы неизвестные флаги.")
+	if err != nil {
+		log.Fatal(err)
 		os.Exit(1)
 	}
 
-	agentMetric := agent.NewAgent(*reportInterval, *pollInterval, *host)
+	agentMetric := agent.NewAgent(*cfg)
 	stop := make(chan struct{})
 	agentMetric.Start(stop)
 }

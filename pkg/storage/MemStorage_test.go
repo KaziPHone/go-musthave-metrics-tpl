@@ -2,6 +2,8 @@ package storage
 
 import (
 	"testing"
+
+	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 )
 
 func TestMStorage_UpdateMetric(t *testing.T) {
@@ -53,7 +55,7 @@ func TestMStorage_UpdateMetric(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := NewMemStorage()
+			m := NewMemStorage(config.ServerConfig{})
 			m.UpdateMetric(tt.args.metricName, tt.args.typeMetric, tt.args.value)
 			v := m.ListMetrics()
 			if tt.args.typeMetric == "gauge" {
