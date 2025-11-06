@@ -9,6 +9,7 @@ import (
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
+	"github.com/rs/zerolog/log"
 )
 
 type IStorage interface {
@@ -203,23 +204,24 @@ func (m *MStorage) updateMetricStorage(metric models.Metrics) {
 	}
 }
 
-func (m *MStorage) saveStorageMetrics() error {
+func (m *MStorage) saveStorageMetrics() {
 
 	dir, _ := filepath.Split(m.fileStorage)
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) && dir != "" {
-		// Директория не найдена, создаем её
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
-			fmt.Printf("Ошибка создания директории: %v\n", err)
+			 log.Err(err)
 		}
 	}
 
 	jsonData, err := json.MarshalIndent(m.metricsStorage, "", "\t")
-	fmt.Println(err)
+	if err != nil {
+		log.Err(err)
+	}
 
 	err = os.WriteFile(m.fileStorage, jsonData, 0644)
-	fmt.Println(err)
-
-	return nil
+	if err != nil {
+		log.Err(err)
+	}
 }
