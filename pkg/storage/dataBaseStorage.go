@@ -3,6 +3,9 @@ package storage
 import (
 	"database/sql"
 
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog/log"
 )
@@ -33,5 +36,33 @@ func (m *MStorage) initDataBase() {
 	m.dataBase.isConnected = true
 	m.dataBase.db = db
 
+	m.migrateDb()
+
 	log.Print("Database connected...")
+}
+
+func (m *MStorage) migrateDb() {
+
+	driver, err := postgres.WithInstance(m.dataBase.db, &postgres.Config{})
+	if err != nil {
+		log.Printf("error creating migration driver: %v\n", err)
+		return
+	}
+
+	migrator, err := migrate.NewWithDatabaseInstance(
+		"file://../.././migrations",
+		"postgres",
+		driver,
+	)
+
+	if err != nil {
+		log.Printf("failed to create migrator instance: %v\n", err)
+		return
+	}
+
+	err = migrator.Up()
+	if err != nil && err != migrate.ErrNoChange {
+		log.Printf("migration failed: %v\n", err)
+		return
+	}
 }
