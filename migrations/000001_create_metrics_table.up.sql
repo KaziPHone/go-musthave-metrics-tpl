@@ -1,8 +1,7 @@
 -- Создаём таблицу metrics
 CREATE TABLE metrics (
-    id SERIAL PRIMARY KEY,
-    id_metric TEXT NOT NULL,
-    type_metric TEXT,
+    id_metric TEXT NOT NULL PRIMARY KEY,
+    type_metric TEXT NOT NULL,
     value_metric DOUBLE PRECISION,
     delta NUMERIC
 );

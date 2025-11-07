@@ -15,6 +15,10 @@ import (
 )
 
 func (m *MStorage) initStorageFile() {
+	if m.useStorage != useFileStorage {
+		return
+	}
+	log.Info().Msg("use file storage")
 	m.loadStorageFile()
 	if m.storeInterval > 0 {
 		go m.storageFileTicker()

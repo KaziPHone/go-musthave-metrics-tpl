@@ -1,64 +1,18 @@
 package storage
 
-import (
-	"fmt"
-
-	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
-)
-
-
 
 func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}) error {
-
-	if value == nil {
-		return fmt.Errorf("value is nil")
-	}
-
-	if _, ok := m.MetricTypes[metricName]; !ok {
-		m.MetricTypes[metricName] = &MetricType{
-			Counter: 0,
-			Gauge:   0,
+	switch {
+	case m.useStorage == useBd:
+		m.dataBase.insertMetric(metricName, typeMetric, value)
+	case m.useStorage == useFileStorage:
+		m.updateMetricMemory(metricName, typeMetric, value)
+		if m.storeInterval == 0 {
+			m.saveStorageMetrics()
 		}
+	default:
+		m.updateMetricMemory(metricName, typeMetric, value)
 	}
-	if typeMetric == models.Gauge {
-		switch v := value.(type) {
-		case float64:
-			m.MetricTypes[metricName].Gauge = v
-		case *float64:
-			if v == nil {
-				return fmt.Errorf("value is nil")
-			}
-			m.MetricTypes[metricName].Gauge = *v
-		default:
-			return fmt.Errorf("unexpected type for gauge: %T", value)
-		}
-		m.MetricTypes[metricName].Mtype = typeMetric
-	} else {
-		switch v := value.(type) {
-		case float64:
-			m.MetricTypes[metricName].Counter += int64(v)
-		case *float64:
-			if v == nil {
-				return fmt.Errorf("value is nil")
-			}
-			m.MetricTypes[metricName].Counter += int64(*v)
-		case int64:
-			m.MetricTypes[metricName].Counter += v
-		case *int64:
-			if v == nil {
-				return fmt.Errorf("value is nil")
-			}
-			m.MetricTypes[metricName].Counter += *v
-		default:
-			return fmt.Errorf("unexpected type for counter: %T", value)
-		}
-		m.MetricTypes[metricName].Mtype = typeMetric
-	}
-
-	if m.storeInterval == 0 {
-		m.saveStorageMetrics()
-	}
-
 	return nil
 }
 
@@ -69,4 +23,19 @@ func (m *MStorage) ListMetrics() map[string]*MetricType {
 func (m *MStorage) GetMetric(metricName string) (*MetricType, bool) {
 	metric, found := m.MetricTypes[metricName]
 	return metric, found
+}
+
+func (m *MStorage) setStorage() {
+	switch {
+	case m.dataBase.dataBaseDsn != "":
+		m.useStorage = useBd
+	case m.fileStorage != "":
+		m.useStorage = useFileStorage
+	default:
+		m.useStorage = useMemory
+	}
+}
+
+func (m *MStorage) IsConnectedDB() bool {
+	return m.dataBase.isConnected
 }

@@ -1,11 +1,17 @@
 package storage
 
 import (
-	"database/sql"
 	"net/http"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 )
+
+const (
+	useBd = iota + 1
+	useFileStorage
+	useMemory
+)
+
 
 type IStorage interface {
 	UpdateMetric(metricName, typeMetric string, value interface{}) error
@@ -20,7 +26,8 @@ type MStorage struct {
 	fileStorage   string `env:"FILE_STORAGE_PATH"`
 	storeInterval int    `env:"STORE_INTERVAL"`
 	restore       bool   `env:"RESTORE"`
-	dataBase      dataBase
+	dataBase      *dataBase
+	useStorage int
 }
 
 type MetricType struct {
@@ -30,15 +37,21 @@ type MetricType struct {
 }
 
 func NewMemStorage(cfg config.ServerConfig) IStorage {
+
+	db := newDataBase(cfg.DataBaseDsn, cfg.MigratePath)
+	db.initDataBase()
+
 	storage := &MStorage{
 		MetricTypes:   make(map[string]*MetricType),
 		fileStorage:   cfg.FileStorage,
 		storeInterval: cfg.StoreInterval,
 		restore:       cfg.Restore,
-		dataBase:      dataBase{dataBaseDsn: cfg.DataBaseDsn, db: &sql.DB{}},
+		dataBase:      db,
 	}
 
+	storage.setStorage()
+
 	storage.initStorageFile()
-	storage.initDataBase()
+
 	return storage
 }
