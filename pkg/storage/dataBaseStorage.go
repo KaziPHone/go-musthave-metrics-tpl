@@ -120,7 +120,7 @@ func (d *dataBase) insertMetric(metricName, typeMetric string, val interface{}) 
 	if id == 0 {
 		d.insert(metricName, typeMetric, value, delta)
 	} else {
-		d.update(metricName, value, delta)
+		d.update(metricName, typeMetric, value, delta)
 	}
 
 }
@@ -137,7 +137,12 @@ func (d *dataBase) insert(metricName, typeMetric string, value *float64, delta *
 }
 
 // update обновление метрики в базе данных
-func (d *dataBase) update(metricName string, value *float64, delta *int64) {
+func (d *dataBase) update(metricName, typeMetric string, value *float64, delta *int64) {
+
+	if typeMetric == models.Counter {
+		metric, _ := d.getMetric(metricName)
+		*delta += metric.Counter
+	}
 
 	_, err := d.db.Exec("UPDATE metrics SET value_metric = $2, delta = $3 WHERE id_metric = $1",
 		metricName, value, delta)
