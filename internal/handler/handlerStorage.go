@@ -1,46 +1,33 @@
-package main
+package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
-	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
-	handlers "github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler"
+	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage"
-	"github.com/go-chi/chi/v5"
-	"github.com/rs/zerolog/log"
 )
 
-func main() {
+type Handler struct {
+	Storage storage.IStorage
+}
 
-	cfg := config.NewConfigServer()
+func (h *Handler) singleMetric(r *http.Request) (*models.Metrics, error) {
 
-	router := chi.NewRouter()
+	var metric models.Metrics
 
-	router.Use(handlers.LoggingMiddleware)
-	router.Use(handlers.GzipRequestMiddleware)
-	router.Use(handlers.GzipResponseMiddleware)
-
-	h := &handlers.Handler{Storage: storage.NewMemStorage(*cfg)}
-
-	router.Get("/", h.ListMetricsHandler)
-	router.Get("/value/{typeMetric}/{nameMetric}", h.GetMetricHandler)
-	router.Get("/ping", h.GetPingDBHandler)
-
-	router.Post("/update/{typeMetric}/{nameMetric}/{value}", h.UpdateValueHandler)
-	router.Post("/update/", h.UpdateHandler)
-	router.Post("/updates/", h.UpdatesHandler)
-	router.Post("/value/", h.ValueMetricHandler)
-
-	server := &http.Server{
-		Addr: cfg.Host,
-		Handler: router,
+	if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
+		return nil, err
 	}
+	return &metric, nil
+}
 
-	h.Storage.StorageGracefulStop(server)
+func (h *Handler) multipleMetrics(r *http.Request) ([]models.Metrics, error) {
 
-	log.Printf("Starting server on: %s...", cfg.Host)
-	err := http.ListenAndServe(cfg.Host, router)
-	if err != nil {
-		log.Err(err)
+	var metrics []models.Metrics
+
+	if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+		return nil, err
 	}
+	return metrics, nil
 }
