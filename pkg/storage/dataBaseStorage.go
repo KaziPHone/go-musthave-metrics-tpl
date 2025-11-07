@@ -197,6 +197,12 @@ func (d *dataBase) getMetrics() map[string]*MetricType {
 		metrics[metric.ID] = &m
 
 	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Print(err)
+	}
+	
 	return metrics
 }
 
