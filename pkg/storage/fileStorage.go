@@ -3,19 +3,17 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 	"github.com/rs/zerolog/log"
 )
 
+// initStorageFile инициализирует файловое хранилище
 func (m *MStorage) initStorageFile() {
-	if m.useStorage != useFileStorage {
+	if !m.isStorageFile() {
 		return
 	}
 	log.Info().Msg("use file storage")
@@ -25,6 +23,7 @@ func (m *MStorage) initStorageFile() {
 	}
 }
 
+// loadStorageFile загружает метрики из файла
 func (m *MStorage) loadStorageFile() error {
 
 	metricsStorage := make([]models.Metrics, 0)
@@ -59,6 +58,7 @@ func (m *MStorage) loadStorageFile() error {
 	return nil
 }
 
+// storageFileTicker запускает таймер для сохранения метрик в файл
 func (m *MStorage) storageFileTicker() {
 
 	if m.storeInterval <= 0 {
@@ -72,6 +72,7 @@ func (m *MStorage) storageFileTicker() {
 	}
 }
 
+// saveStorageMetrics сохраняет метрики в файл
 func (m *MStorage) saveStorageMetrics() {
 
 	if m.dataBase.dataBaseDsn != "" {
@@ -100,7 +101,7 @@ func (m *MStorage) saveStorageMetrics() {
 	if _, err := os.Stat(dir); os.IsNotExist(err) && dir != "" {
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
-			 log.Err(err)
+			log.Err(err)
 		}
 	}
 
@@ -113,15 +114,4 @@ func (m *MStorage) saveStorageMetrics() {
 	if err != nil {
 		log.Err(err)
 	}
-}
-
-func (m *MStorage) GracefulStop(server *http.Server) {
-	stopChan := make(chan os.Signal, 1)
-    signal.Notify(stopChan, syscall.SIGTERM, syscall.SIGINT)
-	go func() {
-        <-stopChan
-		m.saveStorageMetrics()
-        log.Print("Signal received, initiating save storage and graceful shutdown ...")
-		os.Exit(0)
-	}()
 }

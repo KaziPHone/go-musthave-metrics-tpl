@@ -1,11 +1,14 @@
 package storage
 
+import models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 
-func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}) error {
+// UpdateMetric обновление 1й метрики от агента
+func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}) {
+
 	switch {
-	case m.useStorage == useBd:
+	case m.isStorageBD():
 		m.dataBase.insertMetric(metricName, typeMetric, value)
-	case m.useStorage == useFileStorage:
+	case m.isStorageFile():
 		m.updateMetricMemory(metricName, typeMetric, value)
 		if m.storeInterval == 0 {
 			m.saveStorageMetrics()
@@ -13,29 +16,36 @@ func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}
 	default:
 		m.updateMetricMemory(metricName, typeMetric, value)
 	}
-	return nil
+
 }
 
+// ListMetrics возвращает список метрик
 func (m *MStorage) ListMetrics() map[string]*MetricType {
+	if m.isStorageBD() {
+		return m.dataBase.getMetrics()
+	}
 	return m.MetricTypes
 }
 
+// GetMetric возвращает метрику по имени
 func (m *MStorage) GetMetric(metricName string) (*MetricType, bool) {
+	if m.isStorageBD() {
+		return m.dataBase.getMetric(metricName)
+	}
 	metric, found := m.MetricTypes[metricName]
 	return metric, found
 }
 
-func (m *MStorage) setStorage() {
-	switch {
-	case m.dataBase.dataBaseDsn != "":
-		m.useStorage = useBd
-	case m.fileStorage != "":
-		m.useStorage = useFileStorage
-	default:
-		m.useStorage = useMemory
-	}
-}
+// UpdatesMetrics обновление всех метрик
+func (m *MStorage) UpdatesMetrics(metrics []models.Metrics) {
 
-func (m *MStorage) IsConnectedDB() bool {
-	return m.dataBase.isConnected
+	for _, metric := range metrics {
+		var v interface{}
+		if metric.MType == models.Gauge {
+			v = metric.Value
+		} else {
+			v = metric.Delta
+		}
+		m.UpdateMetric(metric.ID, metric.MType, v)
+	}
 }
