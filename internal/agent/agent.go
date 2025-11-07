@@ -29,7 +29,7 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 	return &Agent{
 		pollInterval:   cfg.PollInterval,
 		reportInterval: cfg.ReportInterval,
-		url:            "http://" + cfg.Host + "/update/",
+		url:            "http://" + cfg.Host + "/updates/",
 		pollCount:      0,
 		metrics:        make(map[string]float64),
 		mu:             sync.Mutex{},
@@ -39,43 +39,36 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 
 func compress(data []byte) ([]byte, error) {
 
-    var buf bytes.Buffer
-    gw := gzip.NewWriter(&buf)
-    _, err := gw.Write(data)
-    if err != nil {
-        return nil, fmt.Errorf("ошибка записи в gzip: %v", err)
-    }
-    err = gw.Flush()
-    if err != nil {
-        return nil, fmt.Errorf("ошибка flush gzip: %v", err)
-    }
-    err = gw.Close()
-    if err != nil {
-        return nil, fmt.Errorf("ошибка закрытия gzip: %v", err)
-    }
-    return buf.Bytes(), nil
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	_, err := gw.Write(data)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка записи в gzip: %v", err)
+	}
+	err = gw.Flush()
+	if err != nil {
+		return nil, fmt.Errorf("ошибка flush gzip: %v", err)
+	}
+	err = gw.Close()
+	if err != nil {
+		return nil, fmt.Errorf("ошибка закрытия gzip: %v", err)
+	}
+	return buf.Bytes(), nil
 }
 
-func (a *Agent) sendRequest(typeMetric, metricName string, value *float64, delta *int64) {
+func (a *Agent) sendRequest(metrics []models.Metrics) {
 
-	met := models.Metrics{
-		ID:    metricName,
-		MType: typeMetric,
-		Value: value,
-		Delta: delta,
-	}
-
-	out, err := json.Marshal(met)
+	out, err := json.Marshal(metrics)
 	if err != nil {
 		fmt.Printf("Error marshalling: %v\n", err)
 		return
 	}
 
 	compressedData, err := compress(out)
-    if err != nil {
+	if err != nil {
 		fmt.Printf("Error compress: %v\n", err)
-        return
-    }
+		return
+	}
 
 	req, err := http.NewRequest("POST", a.url, bytes.NewReader(compressedData))
 	if err != nil {
@@ -83,9 +76,9 @@ func (a *Agent) sendRequest(typeMetric, metricName string, value *float64, delta
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
-    req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Content-Encoding", "gzip")
 
-    resp, err := a.httpClient.Do(req)
+	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		fmt.Printf("Error sending request: %v\n", err)
 		return
@@ -94,16 +87,31 @@ func (a *Agent) sendRequest(typeMetric, metricName string, value *float64, delta
 }
 
 func (a *Agent) reportMetrics() {
-
+	
+	
 	for {
-		a.mu.Lock()
+
+		metrics := make([]models.Metrics, 0)
+
 		for key, value := range a.metrics {
-			a.sendRequest("gauge", key, &value, nil)
+			metrics = append(metrics, models.Metrics{
+				ID:    key,
+				MType: models.Gauge,
+				Value: &value,
+			})
 		}
+
 		v := int64(a.pollCount)
-		a.sendRequest("counter", "PollCount", nil, &v)
-		a.mu.Unlock()
+		metrics = append(metrics, models.Metrics{
+			ID:    "PollCount",
+			MType: models.Counter,
+			Delta: &v,
+		})
+
+		a.sendRequest(metrics)
+
 		time.Sleep(time.Duration(a.reportInterval) * time.Second)
+		
 	}
 
 }
