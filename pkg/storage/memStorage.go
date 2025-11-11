@@ -1,14 +1,8 @@
 package storage
 
 import (
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -22,8 +16,8 @@ type IStorage interface {
 	UpdatesMetrics([]models.Metrics)
 	ListMetrics() map[string]*MetricType
 	GetMetric(metricName string) (*MetricType, bool)
-	StorageGracefulStop(server *http.Server)
 	IsConnectedDB() bool
+	Close()
 }
 
 type MStorage struct {
@@ -42,7 +36,6 @@ type MetricType struct {
 }
 
 func NewMemStorage(cfg config.ServerConfig) IStorage {
-
 	db := newDataBase(cfg.DataBaseDsn, cfg.MigratePath)
 	db.initDataBase()
 
@@ -67,7 +60,7 @@ func (m *MStorage) isStorageBD() bool {
 
 // isStorageFile проверка на использование файла
 func (m *MStorage) isStorageFile() bool {
-	return m.useStorage == UseFileStorage 
+	return m.useStorage == UseFileStorage
 }
 
 // setStorage устанавливает тип хранилища
@@ -87,23 +80,6 @@ func (m *MStorage) IsConnectedDB() bool {
 	return m.dataBase.isConnected
 }
 
-// StorageGracefulStop остановка сервера и закрытие хранилища
-func (m *MStorage) StorageGracefulStop(server *http.Server) {
-
-	stopChan := make(chan os.Signal, 1)
-	signal.Notify(stopChan, syscall.SIGTERM, syscall.SIGINT)
-	go func() {
-		<-stopChan
-
-		switch {
-		case m.isStorageBD():
-			m.dataBase.CloseDataBase()
-		case m.isStorageFile():
-			m.saveStorageMetrics()
-		default:
-		}
-
-		log.Print("Signal received, initiating close storage and graceful shutdown ...")
-		os.Exit(0)
-	}()
+func (m *MStorage) Close() {
+	m.dataBase.CloseDataBase()
 }
