@@ -3,27 +3,37 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"net"
+	"syscall"
+	"time"
 
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog/log"
 )
 
 type dataBase struct {
-	dataBaseDsn string
-	isConnected bool
-	db          *sql.DB
-	migratePath string
+	dataBaseDsn   string
+	isConnected   bool
+	db            *sql.DB
+	migratePath   string
+	maxRetries    int             // максимальное кол-во попыток
+	retryInterval []time.Duration // массив задержек для попыток
 }
 
 func newDataBase(dataBaseDsn, migratePath string) *dataBase {
 	return &dataBase{
-		dataBaseDsn: dataBaseDsn,
-		migratePath: migratePath,
+		dataBaseDsn:   dataBaseDsn,
+		migratePath:   migratePath,
+		maxRetries:    3,                                                              // Три дополнительных попытки
+		retryInterval: []time.Duration{time.Second, 3 * time.Second, 5 * time.Second}, // Задержки
 	}
 }
 
@@ -38,9 +48,10 @@ func (d *dataBase) initDataBase() {
 		return
 	}
 
-	db, err := sql.Open("pgx", d.dataBaseDsn)
+	// Открываем базовое соединение с несколькими попытками
+	db, err := d.openDBWithRetry()
 	if err != nil {
-		log.Print(err)
+		log.Printf("Unable to establish a connection with the database after retries: %v\n", err)
 		return
 	}
 
@@ -55,6 +66,32 @@ func (d *dataBase) initDataBase() {
 	log.Print("Database connected")
 
 	d.migrateDB()
+}
+
+func (d *dataBase) openDBWithRetry() (*sql.DB, error) {
+	var db *sql.DB
+	var err error
+
+	for i := 0; i <= d.maxRetries; i++ {
+		db, err = sql.Open("pgx", d.dataBaseDsn)
+		if err == nil {
+			break
+		}
+
+		if !d.retryableError(err) {
+			return nil, fmt.Errorf("non-retryable error occurred during DB initialization: %w", err)
+		}
+
+		if len(d.retryInterval) > i {
+			waitTime := d.retryInterval[i]
+			log.Printf("Initial connection attempt failed, retrying in %v...\n", waitTime)
+			time.Sleep(waitTime)
+		} else {
+			break
+		}
+	}
+
+	return db, err
 }
 
 // migrateDB миграция базы данных
@@ -106,48 +143,18 @@ func (d *dataBase) insertMetric(metricName, typeMetric string, val interface{}) 
 		delta = val.(*int64)
 	}
 
-	row := d.db.QueryRowContext(context.Background(),
-		"SELECT count(id_metric) as count FROM metrics WHERE id_metric = $1", metricName)
+	query := `
+        INSERT INTO metrics (id_metric, type_metric, value_metric, delta)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (id_metric)
+		DO UPDATE SET
+    	value_metric = EXCLUDED.value_metric,
+    	delta = CASE WHEN EXCLUDED.delta IS NOT NULL THEN metrics.delta + EXCLUDED.delta ELSE metrics.delta END;`
 
-	var id int64
-	err := row.Scan(&id)
-
-	if err != nil {
-		log.Printf("insert failed: %v\n", err)
-		return
-	}
-
-	if id == 0 {
-		d.insert(metricName, typeMetric, value, delta)
-	} else {
-		d.update(metricName, typeMetric, value, delta)
-	}
-
-}
-
-// insert вставка метрики в базу данных
-func (d *dataBase) insert(metricName, typeMetric string, value *float64, delta *int64) error {
-
-	_, err := d.db.Exec("INSERT INTO metrics (id_metric, type_metric, value_metric, delta) VALUES ($1, $2, $3, $4)",
+	_, err := d.executeWithRetry(context.Background(), query,
 		metricName, typeMetric, value, delta)
 	if err != nil {
-		log.Printf("insert failed: %v\n", err)
-	}
-	return err
-}
-
-// update обновление метрики в базе данных
-func (d *dataBase) update(metricName, typeMetric string, value *float64, delta *int64) {
-
-	if typeMetric == models.Counter {
-		metric, _ := d.getMetric(metricName)
-		*delta += metric.Counter
-	}
-
-	_, err := d.db.Exec("UPDATE metrics SET value_metric = $2, delta = $3 WHERE id_metric = $1",
-		metricName, value, delta)
-	if err != nil {
-		log.Printf("insert failed: %v\n", err)
+		log.Printf("insert/update failed: %v\n", err)
 	}
 
 }
@@ -207,11 +214,71 @@ func (d *dataBase) getMetrics() map[string]*MetricType {
 	if err != nil {
 		log.Print(err)
 	}
-	
+
 	return metrics
 }
 
 // CloseDataBase закрытие базы данных
 func (d *dataBase) CloseDataBase() {
 	d.db.Close()
+}
+
+// retryableError определяет, является ли ошибка временной и подлежит повторению
+func (d *dataBase) retryableError(err error) bool {
+	// Сначала проверяем ошибку PostgreSQL
+	pgErr, isPgError := err.(*pgconn.PgError)
+	if isPgError {
+		switch pgErr.Code {
+		case pgerrcode.ConnectionException:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// Теперь проверяем ошибки OS/Sockets
+	netErr, isNetError := err.(interface {
+		Timeout() bool
+		Temporary() bool
+	})
+	if isNetError && netErr.Temporary() {
+		return true
+	}
+
+	// Отдельно проверяем конкретную ошибку ECONNREFUSED
+	opErr, isOpError := err.(*net.OpError)
+	if isOpError && opErr.Err == syscall.ECONNREFUSED {
+		return true
+	}
+
+	return false
+}
+
+// executeWithRetry функция для выполнения SQL-запросов с возможностью повторений
+func (d *dataBase) executeWithRetry(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	var result sql.Result
+	var err error
+
+	for i := 0; i <= d.maxRetries; i++ {
+		result, err = d.db.ExecContext(ctx, query, args...)
+		if err == nil {
+			break
+		}
+		fmt.Println("retry", i)
+
+		if !d.retryableError(err) {
+			return nil, fmt.Errorf("non-retryable error occurred: %w", err)
+		}
+
+		// Проверяем наличие оставшегося периода ожиданий
+		if len(d.retryInterval) > i {
+			waitTime := d.retryInterval[i]
+			log.Printf("Connection exception detected, retrying in %v...", waitTime)
+			time.Sleep(waitTime)
+		} else {
+			break
+		}
+	}
+
+	return result, err
 }
