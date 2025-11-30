@@ -12,7 +12,10 @@ import (
 
 func main() {
 
-	cfg := config.NewConfigServer()
+	cfg, err := config.NewConfigServer()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load config")
+	}
 
 	router := chi.NewRouter()
 
@@ -39,7 +42,7 @@ func main() {
 	h.Storage.StorageGracefulStop(server)
 
 	log.Printf("Starting server on: %s...", cfg.Host)
-	err := http.ListenAndServe(cfg.Host, router)
+	err = http.ListenAndServe(cfg.Host, router)
 	if err != nil {
 		log.Err(err)
 	}
