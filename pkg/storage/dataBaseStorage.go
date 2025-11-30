@@ -264,7 +264,6 @@ func (d *dataBase) executeWithRetry(ctx context.Context, query string, args ...i
 		if err == nil {
 			break
 		}
-		fmt.Println("retry", i)
 
 		if !d.retryableError(err) {
 			return nil, fmt.Errorf("non-retryable error occurred: %w", err)
