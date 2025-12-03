@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand/v2"
 	"net/http"
 	"runtime"
@@ -23,87 +24,123 @@ type Agent struct {
 	metrics        map[string]float64
 	mu             sync.Mutex
 	httpClient     *http.Client
+	maxRetries     int
+	retryDelays    []time.Duration
 }
 
 func NewAgent(cfg config.AgentConfig) *Agent {
 	return &Agent{
 		pollInterval:   cfg.PollInterval,
 		reportInterval: cfg.ReportInterval,
-		url:            "http://" + cfg.Host + "/update/",
+		url:            "http://" + cfg.Host + "/updates/",
 		pollCount:      0,
 		metrics:        make(map[string]float64),
 		mu:             sync.Mutex{},
 		httpClient:     &http.Client{},
+		maxRetries:     3,
+		retryDelays:    []time.Duration{time.Second, 3 * time.Second, 5 * time.Second},
 	}
 }
 
 func compress(data []byte) ([]byte, error) {
 
-    var buf bytes.Buffer
-    gw := gzip.NewWriter(&buf)
-    _, err := gw.Write(data)
-    if err != nil {
-        return nil, fmt.Errorf("ошибка записи в gzip: %v", err)
-    }
-    err = gw.Flush()
-    if err != nil {
-        return nil, fmt.Errorf("ошибка flush gzip: %v", err)
-    }
-    err = gw.Close()
-    if err != nil {
-        return nil, fmt.Errorf("ошибка закрытия gzip: %v", err)
-    }
-    return buf.Bytes(), nil
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	_, err := gw.Write(data)
+	if err != nil {
+		return nil, fmt.Errorf("error writing to gzip: %v", err)
+	}
+	err = gw.Flush()
+	if err != nil {
+		return nil, fmt.Errorf("the flush gzip error: %v", err)
+	}
+	err = gw.Close()
+	if err != nil {
+		return nil, fmt.Errorf("gzip closing error: %v", err)
+	}
+	return buf.Bytes(), nil
 }
 
-func (a *Agent) sendRequest(typeMetric, metricName string, value *float64, delta *int64) {
+func (a *Agent) sendRequest(metrics []models.Metrics) {
 
-	met := models.Metrics{
-		ID:    metricName,
-		MType: typeMetric,
-		Value: value,
-		Delta: delta,
-	}
+	for attempt := 0; ; attempt++ {
+		out, err := json.Marshal(metrics)
+		if err != nil {
+			fmt.Printf("Error marshalling: %v\n", err)
+			return
+		}
 
-	out, err := json.Marshal(met)
-	if err != nil {
-		fmt.Printf("Error marshalling: %v\n", err)
+		compressedData, err := compress(out)
+		if err != nil {
+			fmt.Printf("Error compress: %v\n", err)
+			return
+		}
+
+		req, err := http.NewRequest("POST", a.url, bytes.NewReader(compressedData))
+		if err != nil {
+			fmt.Printf("Error creating request: %v\n", err)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Encoding", "gzip")
+
+		resp, err := a.httpClient.Do(req)
+		if err != nil {
+			if attempt >= a.maxRetries {
+				fmt.Printf("Unsuccessful request sending after maximum attempts (%d)\n", a.maxRetries)
+				return
+			}
+
+			fmt.Printf("Request sending error: %v, repeat via %v\n", err, a.retryDelays[attempt])
+			time.Sleep(a.retryDelays[attempt])
+
+			continue
+		}
+		defer resp.Body.Close()
+
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			if attempt >= a.maxRetries {
+				fmt.Printf("Failed request (code: %d, body: %q) after maximum attempts (%d)\n", resp.StatusCode, bodyBytes, a.maxRetries)
+				return
+			}
+			fmt.Printf("Incorrect status received (%d): %q, repeat after %v\n", resp.StatusCode, bodyBytes, a.retryDelays[attempt])
+			time.Sleep(a.retryDelays[attempt])
+			continue
+		}
+
+		fmt.Printf("The request was sent successfully!\n")
+		
 		return
 	}
-
-	compressedData, err := compress(out)
-    if err != nil {
-		fmt.Printf("Error compress: %v\n", err)
-        return
-    }
-
-	req, err := http.NewRequest("POST", a.url, bytes.NewReader(compressedData))
-	if err != nil {
-		fmt.Printf("Error creating request: %v\n", err)
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-    req.Header.Set("Content-Encoding", "gzip")
-
-    resp, err := a.httpClient.Do(req)
-	if err != nil {
-		fmt.Printf("Error sending request: %v\n", err)
-		return
-	}
-	resp.Body.Close()
 }
 
 func (a *Agent) reportMetrics() {
-
+	
+	
 	for {
-		a.mu.Lock()
+
+		metrics := make([]models.Metrics, 0)
+
 		for key, value := range a.metrics {
-			a.sendRequest("gauge", key, &value, nil)
+			metrics = append(metrics, models.Metrics{
+				ID:    key,
+				MType: models.Gauge,
+				Value: &value,
+			})
 		}
+
 		v := int64(a.pollCount)
-		a.sendRequest("counter", "PollCount", nil, &v)
-		a.mu.Unlock()
+		metrics = append(metrics, models.Metrics{
+			ID:    "PollCount",
+			MType: models.Counter,
+			Delta: &v,
+		})
+
+		a.sendRequest(metrics)
+
 		time.Sleep(time.Duration(a.reportInterval) * time.Second)
+		
 	}
 
 }

@@ -12,7 +12,10 @@ import (
 
 func main() {
 
-	cfg := config.NewConfigServer()
+	cfg, err := config.NewConfigServer()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load config")
+	}
 
 	router := chi.NewRouter()
 
@@ -24,8 +27,11 @@ func main() {
 
 	router.Get("/", h.ListMetricsHandler)
 	router.Get("/value/{typeMetric}/{nameMetric}", h.GetMetricHandler)
+	router.Get("/ping", h.GetPingDBHandler)
+
 	router.Post("/update/{typeMetric}/{nameMetric}/{value}", h.UpdateValueHandler)
 	router.Post("/update/", h.UpdateHandler)
+	router.Post("/updates/", h.UpdatesHandler)
 	router.Post("/value/", h.ValueMetricHandler)
 
 	server := &http.Server{
@@ -33,10 +39,10 @@ func main() {
 		Handler: router,
 	}
 
-	h.Storage.GracefulStop(server)
+	h.Storage.StorageGracefulStop(server)
 
 	log.Printf("Starting server on: %s...", cfg.Host)
-	err := http.ListenAndServe(cfg.Host, router)
+	err = http.ListenAndServe(cfg.Host, router)
 	if err != nil {
 		log.Err(err)
 	}

@@ -6,13 +6,9 @@ import (
 	"strconv"
 
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
-	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage"
+
 	"github.com/go-chi/chi/v5"
 )
-
-type Handler struct {
-	Storage storage.IStorage
-}
 
 func (h *Handler) UpdateValueHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -46,11 +42,7 @@ func (h *Handler) UpdateValueHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.Storage.UpdateMetric(nameMetric, typeMetric, value)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	h.Storage.UpdateMetric(nameMetric, typeMetric, value)
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Updated successfully")
@@ -59,7 +51,7 @@ func (h *Handler) UpdateValueHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
-	metric, err := h.readerMetricRequest(r)
+	metric, err := h.singleMetric(r)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -72,16 +64,14 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var val interface{}
 	if metric.MType == models.Gauge {
-		err = h.Storage.UpdateMetric(metric.ID, metric.MType, metric.Value)
+		val = metric.Value
 	} else {
-		err = h.Storage.UpdateMetric(metric.ID, metric.MType, metric.Delta)
+		val = metric.Delta
 	}
 
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
+	h.Storage.UpdateMetric(metric.ID, metric.MType, val)
+
 	w.Write([]byte("{}"))
 }

@@ -12,7 +12,7 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	metric, err := h.readerMetricRequest(r)
+	metric, err := h.singleMetric(r)
 
 	mResponse := models.Metrics{
 		ID:    metric.ID,
