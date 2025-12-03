@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand/v2"
 	"net/http"
 	"runtime"
@@ -23,6 +24,8 @@ type Agent struct {
 	metrics        map[string]float64
 	mu             sync.Mutex
 	httpClient     *http.Client
+	maxRetries     int
+	retryDelays    []time.Duration
 }
 
 func NewAgent(cfg config.AgentConfig) *Agent {
@@ -34,6 +37,8 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 		metrics:        make(map[string]float64),
 		mu:             sync.Mutex{},
 		httpClient:     &http.Client{},
+		maxRetries:     3,
+		retryDelays:    []time.Duration{time.Second, 3 * time.Second, 5 * time.Second},
 	}
 }
 
@@ -43,47 +48,71 @@ func compress(data []byte) ([]byte, error) {
 	gw := gzip.NewWriter(&buf)
 	_, err := gw.Write(data)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка записи в gzip: %v", err)
+		return nil, fmt.Errorf("error writing to gzip: %v", err)
 	}
 	err = gw.Flush()
 	if err != nil {
-		return nil, fmt.Errorf("ошибка flush gzip: %v", err)
+		return nil, fmt.Errorf("the flush gzip error: %v", err)
 	}
 	err = gw.Close()
 	if err != nil {
-		return nil, fmt.Errorf("ошибка закрытия gzip: %v", err)
+		return nil, fmt.Errorf("gzip closing error: %v", err)
 	}
 	return buf.Bytes(), nil
 }
 
 func (a *Agent) sendRequest(metrics []models.Metrics) {
 
-	out, err := json.Marshal(metrics)
-	if err != nil {
-		fmt.Printf("Error marshalling: %v\n", err)
-		return
-	}
+	for attempt := 0; ; attempt++ {
+		out, err := json.Marshal(metrics)
+		if err != nil {
+			fmt.Printf("Error marshalling: %v\n", err)
+			return
+		}
 
-	compressedData, err := compress(out)
-	if err != nil {
-		fmt.Printf("Error compress: %v\n", err)
-		return
-	}
+		compressedData, err := compress(out)
+		if err != nil {
+			fmt.Printf("Error compress: %v\n", err)
+			return
+		}
 
-	req, err := http.NewRequest("POST", a.url, bytes.NewReader(compressedData))
-	if err != nil {
-		fmt.Printf("Error creating request: %v\n", err)
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
+		req, err := http.NewRequest("POST", a.url, bytes.NewReader(compressedData))
+		if err != nil {
+			fmt.Printf("Error creating request: %v\n", err)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Encoding", "gzip")
 
-	resp, err := a.httpClient.Do(req)
-	if err != nil {
-		fmt.Printf("Error sending request: %v\n", err)
+		resp, err := a.httpClient.Do(req)
+		if err != nil {
+			if attempt >= a.maxRetries {
+				fmt.Printf("Unsuccessful request sending after maximum attempts (%d)\n", a.maxRetries)
+				return
+			}
+
+			fmt.Printf("Request sending error: %v, repeat via %v\n", err, a.retryDelays[attempt])
+			time.Sleep(a.retryDelays[attempt])
+
+			continue
+		}
+		defer resp.Body.Close()
+
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			if attempt >= a.maxRetries {
+				fmt.Printf("Failed request (code: %d, body: %q) after maximum attempts (%d)\n", resp.StatusCode, bodyBytes, a.maxRetries)
+				return
+			}
+			fmt.Printf("Incorrect status received (%d): %q, repeat after %v\n", resp.StatusCode, bodyBytes, a.retryDelays[attempt])
+			time.Sleep(a.retryDelays[attempt])
+			continue
+		}
+
+		fmt.Printf("The request was sent successfully!\n")
+		
 		return
 	}
-	resp.Body.Close()
 }
 
 func (a *Agent) reportMetrics() {
