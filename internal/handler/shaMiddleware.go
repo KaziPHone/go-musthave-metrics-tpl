@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"io"
 	"net/http"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
@@ -30,15 +29,13 @@ func ShaMiddleware(key string) func(http.Handler) http.Handler {
 				return
 			}
 
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				http.Error(w, "failed to read body", http.StatusBadRequest)
+			originalBody, ok := r.Context().Value("original_body").([]byte)
+			if !ok {
+				http.Error(w, "original_body not found or not []byte in context", http.StatusInternalServerError)
 				return
 			}
-			_ = r.Body.Close()
 
-			r.Body = io.NopCloser(bytes.NewBuffer(body))
-			if helpers.IsBadShaRequest(body, r.Header.Get("HashSHA256")) {
+			if helpers.IsBadShaRequest(originalBody, r.Header.Get("HashSHA256")) {
 				http.Error(w, "bad request sha", http.StatusBadRequest)
 				return
 			}

@@ -1,13 +1,20 @@
 package handlers
 
 import (
-	"bufio"
 	"bytes"
 	"compress/gzip"
-	"github.com/rs/zerolog/log"
+	"context"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/rs/zerolog/log"
+)
+
+type contextKey string
+
+const (
+    originalBodyKey contextKey = "original_body"
 )
 
 type gzipWriter struct {
@@ -34,8 +41,14 @@ func GzipRequestMiddleware(h http.Handler) http.Handler {
 			return
 		}
 
-		reader := bufio.NewReader(r.Body)
-		gzReader, err := gzip.NewReader(reader)
+		originalBody, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read compressed body", http.StatusBadRequest)
+			log.Print(err)
+			return
+		}
+
+		gzReader, err := gzip.NewReader(bytes.NewReader(originalBody))
 		if err != nil {
 			http.Error(w, "Ошибка обработки gzipped-запроса", http.StatusBadRequest)
 			log.Print(err)
@@ -51,6 +64,8 @@ func GzipRequestMiddleware(h http.Handler) http.Handler {
 		}
 
 		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		ctx := context.WithValue(r.Context(), originalBodyKey, originalBody)
+		r = r.WithContext(ctx)
 		h.ServeHTTP(w, r)
 	})
 }

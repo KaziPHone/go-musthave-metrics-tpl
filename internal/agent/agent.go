@@ -88,7 +88,7 @@ func (a *Agent) sendRequest(metrics []models.Metrics) {
 		req.Header.Set("Content-Encoding", "gzip")
 
 		if a.key != "" {
-			req.Header.Set("HashSHA256", helpers.CalcSHA256Hash(out))
+			req.Header.Set("HashSHA256", helpers.CalcSHA256Hash(compressedData))
 		}
 
 		resp, err := a.httpClient.Do(req)
