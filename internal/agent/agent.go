@@ -160,6 +160,7 @@ func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
 			return
 		default:
 			a.mu.Lock()
+			defer a.mu.Unlock()
 			runtime.ReadMemStats(&memStats)
 			a.metrics["Alloc"] = float64(memStats.Alloc)
 			a.metrics["BuckHashSys"] = float64(memStats.BuckHashSys)
@@ -190,7 +191,6 @@ func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
 			a.metrics["Frees"] = float64(memStats.Frees)
 			a.metrics["GCSys"] = float64(memStats.GCSys)
 			a.pollCount += 1
-			a.mu.Unlock()
 			time.Sleep(time.Duration(a.pollInterval) * time.Second)
 		}
 
