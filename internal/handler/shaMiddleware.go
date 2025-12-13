@@ -10,15 +10,27 @@ import (
 type shaRw struct {
 	http.ResponseWriter
 	buf *bytes.Buffer
+	statusCode   int
+	wroteHeader  bool
 }
 
 func (s *shaRw) Write(p []byte) (int, error) {
+
+	if !s.wroteHeader {
+		s.WriteHeader(http.StatusOK) // По умолчанию
+	}
+
 	return s.buf.Write(p) // ← только записываем в буфер, НЕ прокидываем дальше
 }
 
 // WriteHeader тоже перехватываем, чтобы не отправлять заголовки преждевременно
 func (s *shaRw) WriteHeader(statusCode int) {
 	// Ничего не делаем — откладываем отправку заголовков
+	if s.wroteHeader {
+		return
+	}
+	s.statusCode = statusCode
+	s.wroteHeader = true
 }
 
 func ShaMiddleware(key string) func(http.Handler) http.Handler {
@@ -41,10 +53,20 @@ func ShaMiddleware(key string) func(http.Handler) http.Handler {
 			}
 
 			var buf bytes.Buffer
-			crw := &shaRw{ResponseWriter: w, buf: &buf}
+			crw := &shaRw{
+				ResponseWriter: w, 
+				buf: &buf,
+				statusCode:     http.StatusOK,
+				wroteHeader:    false,
+
+			}
 
 			// Выполняем обработчик, но он пишет в буфер, а не сразу в w
 			h.ServeHTTP(crw, r)
+
+			if !crw.wroteHeader {
+				crw.WriteHeader(http.StatusOK)
+			}
 
 			// Теперь вычисляем хеш
 			digest := helpers.CalcSHA256HashBuffer(buf)
@@ -55,7 +77,7 @@ func ShaMiddleware(key string) func(http.Handler) http.Handler {
 			// Отправляем статус (если не был отправлен)
 			// Если нужно — можно отслеживать statusCode через обёртку
 			//w.WriteHeader(http.StatusOK) // ← ИЛИ отслеживайте код через кастомный Writer
-
+			w.WriteHeader(crw.statusCode)
 			// Отправляем тело
 			w.Write(buf.Bytes())
 		})

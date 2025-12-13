@@ -25,6 +25,16 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 func GzipRequestMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		originalBody, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read compressed body", http.StatusBadRequest)
+			log.Print(err)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), helpers.OriginalBodyKey, originalBody)
+		r = r.WithContext(ctx)
+
 		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			h.ServeHTTP(w, r)
 			return
@@ -36,12 +46,6 @@ func GzipRequestMiddleware(h http.Handler) http.Handler {
 			return
 		}
 
-		originalBody, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "Failed to read compressed body", http.StatusBadRequest)
-			log.Print(err)
-			return
-		}
 
 		gzReader, err := gzip.NewReader(bytes.NewReader(originalBody))
 		if err != nil {
@@ -59,8 +63,6 @@ func GzipRequestMiddleware(h http.Handler) http.Handler {
 		}
 
 		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-		ctx := context.WithValue(r.Context(), helpers.OriginalBodyKey, originalBody)
-		r = r.WithContext(ctx)
 		h.ServeHTTP(w, r)
 	})
 }
