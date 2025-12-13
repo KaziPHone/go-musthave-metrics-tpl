@@ -159,8 +159,8 @@ func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
 		case <-stopCh:
 			return
 		default:
-			runtime.ReadMemStats(&memStats)
 			a.mu.Lock()
+			runtime.ReadMemStats(&memStats)
 			a.metrics["Alloc"] = float64(memStats.Alloc)
 			a.metrics["BuckHashSys"] = float64(memStats.BuckHashSys)
 			a.metrics["GCCPUFraction"] = memStats.GCCPUFraction
