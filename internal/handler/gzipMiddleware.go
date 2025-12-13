@@ -36,6 +36,7 @@ func GzipRequestMiddleware(h http.Handler) http.Handler {
 		r = r.WithContext(ctx)
 
 		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
 			h.ServeHTTP(w, r)
 			return
 		}
