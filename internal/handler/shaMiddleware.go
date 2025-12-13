@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"net/http"
 
-	hlp "github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
+	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
 )
 
 type shaRw struct {
@@ -29,13 +29,13 @@ func ShaMiddleware(key string) func(http.Handler) http.Handler {
 				return
 			}
 
-			originalBody, ok := r.Context().Value(hlp.OriginalBodyKey).([]byte)
+			originalBody, ok := r.Context().Value("original_body").([]byte)
 			if !ok {
 				http.Error(w, "original_body not found or not []byte in context", http.StatusInternalServerError)
 				return
 			}
 
-			if hlp.IsBadShaRequest(originalBody, r.Header.Get("HashSHA256")) {
+			if helpers.IsBadShaRequest(originalBody, r.Header.Get("HashSHA256")) {
 				http.Error(w, "bad request sha", http.StatusBadRequest)
 				return
 			}
@@ -47,7 +47,7 @@ func ShaMiddleware(key string) func(http.Handler) http.Handler {
 			h.ServeHTTP(crw, r)
 
 			// Теперь вычисляем хеш
-			digest := hlp.CalcSHA256HashBuffer(buf)
+			digest := helpers.CalcSHA256HashBuffer(buf)
 
 			// Устанавливаем заголовок
 			w.Header().Set("HashSHA256", digest)

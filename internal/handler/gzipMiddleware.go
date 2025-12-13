@@ -8,8 +8,13 @@ import (
 	"net/http"
 	"strings"
 
-	hlp "github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
 	"github.com/rs/zerolog/log"
+)
+
+type contextKey string
+
+const (
+    originalBodyKey contextKey = "original_body"
 )
 
 type gzipWriter struct {
@@ -25,15 +30,6 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 func GzipRequestMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		originalBody, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "Failed to read compressed body", http.StatusBadRequest)
-			log.Print(err)
-			return
-		}
-		ctx := context.WithValue(r.Context(), hlp.OriginalBodyKey, originalBody)
-		r = r.WithContext(ctx)
-
 		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			h.ServeHTTP(w, r)
 			return
@@ -42,6 +38,13 @@ func GzipRequestMiddleware(h http.Handler) http.Handler {
 		contentType := r.Header.Get("Content-Type")
 		if contentType != "application/json" && contentType != "text/html" {
 			http.Error(w, "Unsupported content type with gzip", http.StatusUnsupportedMediaType)
+			return
+		}
+
+		originalBody, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read compressed body", http.StatusBadRequest)
+			log.Print(err)
 			return
 		}
 
@@ -61,6 +64,8 @@ func GzipRequestMiddleware(h http.Handler) http.Handler {
 		}
 
 		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		ctx := context.WithValue(r.Context(), originalBodyKey, originalBody)
+		r = r.WithContext(ctx)
 		h.ServeHTTP(w, r)
 	})
 }

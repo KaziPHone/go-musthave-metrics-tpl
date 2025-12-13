@@ -20,5 +20,5 @@ func CalcSHA256Hash(data []byte) string {
 }
 
 func IsBadShaRequest(data []byte, hash string) bool {
-	return CalcSHA256Hash(data) != hash && hash != ""
+	return CalcSHA256Hash(data) != hash
 }
