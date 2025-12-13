@@ -14,6 +14,7 @@ import (
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
+	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
 )
 
 type Agent struct {
@@ -26,12 +27,14 @@ type Agent struct {
 	httpClient     *http.Client
 	maxRetries     int
 	retryDelays    []time.Duration
+	key            string
 }
 
 func NewAgent(cfg config.AgentConfig) *Agent {
 	return &Agent{
 		pollInterval:   cfg.PollInterval,
 		reportInterval: cfg.ReportInterval,
+		key:            cfg.Key,
 		url:            "http://" + cfg.Host + "/updates/",
 		pollCount:      0,
 		metrics:        make(map[string]float64),
@@ -84,6 +87,10 @@ func (a *Agent) sendRequest(metrics []models.Metrics) {
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Content-Encoding", "gzip")
 
+		if a.key != "" {
+			req.Header.Set("HashSHA256", helpers.CalcSHA256Hash(out))
+		}
+
 		resp, err := a.httpClient.Do(req)
 		if err != nil {
 			if attempt >= a.maxRetries {
@@ -110,14 +117,13 @@ func (a *Agent) sendRequest(metrics []models.Metrics) {
 		}
 
 		fmt.Printf("The request was sent successfully!\n")
-		
+
 		return
 	}
 }
 
 func (a *Agent) reportMetrics() {
-	
-	
+
 	for {
 
 		metrics := make([]models.Metrics, 0)
@@ -140,7 +146,7 @@ func (a *Agent) reportMetrics() {
 		a.sendRequest(metrics)
 
 		time.Sleep(time.Duration(a.reportInterval) * time.Second)
-		
+
 	}
 
 }
