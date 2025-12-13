@@ -8,13 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	hlp "github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
 	"github.com/rs/zerolog/log"
-)
-
-type contextKey string
-
-const (
-    originalBodyKey contextKey = "original_body"
 )
 
 type gzipWriter struct {
@@ -64,7 +59,7 @@ func GzipRequestMiddleware(h http.Handler) http.Handler {
 		}
 
 		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-		ctx := context.WithValue(r.Context(), originalBodyKey, originalBody)
+		ctx := context.WithValue(r.Context(), hlp.OriginalBodyKey, originalBody)
 		r = r.WithContext(ctx)
 		h.ServeHTTP(w, r)
 	})
