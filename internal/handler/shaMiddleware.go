@@ -29,7 +29,7 @@ func ShaMiddleware(key string) func(http.Handler) http.Handler {
 				return
 			}
 
-			originalBody, ok := r.Context().Value("original_body").([]byte)
+			originalBody, ok := r.Context().Value(helpers.OriginalBodyKey).([]byte)
 			if !ok {
 				http.Error(w, "original_body not found or not []byte in context", http.StatusInternalServerError)
 				return
@@ -54,7 +54,7 @@ func ShaMiddleware(key string) func(http.Handler) http.Handler {
 
 			// Отправляем статус (если не был отправлен)
 			// Если нужно — можно отслеживать statusCode через обёртку
-			w.WriteHeader(http.StatusOK) // ← ИЛИ отслеживайте код через кастомный Writer
+			//w.WriteHeader(http.StatusOK) // ← ИЛИ отслеживайте код через кастомный Writer
 
 			// Отправляем тело
 			w.Write(buf.Bytes())
