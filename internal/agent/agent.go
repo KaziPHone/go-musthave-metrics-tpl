@@ -151,6 +151,7 @@ func (a *Agent) reportMetrics() {
 
 }
 
+
 func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
 	var memStats runtime.MemStats
 
@@ -159,9 +160,8 @@ func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
 		case <-stopCh:
 			return
 		default:
-			a.mu.Lock()
-			defer a.mu.Unlock()
 			runtime.ReadMemStats(&memStats)
+			a.mu.Lock()
 			a.metrics["Alloc"] = float64(memStats.Alloc)
 			a.metrics["BuckHashSys"] = float64(memStats.BuckHashSys)
 			a.metrics["GCCPUFraction"] = memStats.GCCPUFraction
@@ -191,6 +191,7 @@ func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
 			a.metrics["Frees"] = float64(memStats.Frees)
 			a.metrics["GCSys"] = float64(memStats.GCSys)
 			a.pollCount += 1
+			a.mu.Unlock()
 			time.Sleep(time.Duration(a.pollInterval) * time.Second)
 		}
 
