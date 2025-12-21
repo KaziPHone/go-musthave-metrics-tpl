@@ -12,6 +12,7 @@ type AgentConfig struct {
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
 	Key            string `env:"KEY"`
+	RateLimit      int    `env:"RATE_LIMIT"`
 }
 
 func NewConfigAgent() (*AgentConfig, error) {
@@ -26,6 +27,7 @@ func (cfg *AgentConfig) initConfig() error {
 	flag.IntVar(&cfg.ReportInterval, "r", 10, "частота отправки метрик на сервер (по умолчанию 10 секунд)")
 	flag.IntVar(&cfg.PollInterval, "p", 3, "частота опроса метрик из пакета runtime (по умолчанию 2 секунды)")
 	flag.StringVar(&cfg.Key, "k", "", "Ключ")
+	flag.IntVar(&cfg.RateLimit, "l", 5, "Максимальное количество одновременно исходящих запросов")
 
 	flag.Parse()
 

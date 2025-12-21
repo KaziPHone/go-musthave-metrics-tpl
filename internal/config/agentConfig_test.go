@@ -12,6 +12,7 @@ func TestNewConfig_NormalCase(t *testing.T) {
 	os.Setenv("ADDRESS", "localhost:8081")
 	os.Setenv("REPORT_INTERVAL", "15")
 	os.Setenv("POLL_INTERVAL", "5")
+	os.Setenv("RATE_LIMIT", "1")
 
 	defer resetEnvironmentVars()
 
@@ -22,6 +23,7 @@ func TestNewConfig_NormalCase(t *testing.T) {
 		Host:           "localhost:8081",
 		ReportInterval: 15,
 		PollInterval:   5,
+		RateLimit:      1,
 	}
 
 	assert.Equal(t, expectedCfg, cfg)
