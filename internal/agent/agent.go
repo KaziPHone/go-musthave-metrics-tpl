@@ -136,8 +136,10 @@ func (a *Agent) collectSystemMetrics() {
 	if err != nil || len(times) == 0 {
 		return
 	}
-	total := times[0].Total()
-	idle := times[0].Idle
+	ts := times[0]
+	total := ts.User + ts.System + ts.Idle + ts.Nice + ts.Iowait +
+		ts.Irq + ts.Softirq + ts.Steal + ts.Guest + ts.GuestNice
+	idle := ts.Idle
 
 	a.mu.Lock()
 	if prevTotal, exists := a.metrics["CPUPrevTotal"]; exists {
