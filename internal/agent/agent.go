@@ -16,7 +16,6 @@ import (
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
 
-	//"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 )
@@ -47,7 +46,7 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 		httpClient:     &http.Client{},
 		maxRetries:     3,
 		retryDelays:    []time.Duration{time.Second, 3 * time.Second, 5 * time.Second},
-		rateLimit:      cfg.RateLimit, // Должно быть из флага / env
+		rateLimit:      cfg.RateLimit,
 	}
 }
 
@@ -66,7 +65,7 @@ func compress(data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// sendMetric отправляет один пакет метрик (реализует retry-логику)
+// sendMetric отправляет пакет метрик с retry-логикой
 func (a *Agent) sendMetric(metrics []models.Metrics) {
 	for attempt := 0; ; attempt++ {
 		out, err := json.Marshal(metrics)
@@ -125,6 +124,7 @@ func (a *Agent) worker(jobs <-chan []models.Metrics, wg *sync.WaitGroup) {
 	}
 }
 
+// collectSystemMetrics собирает метрики без блокировки
 func (a *Agent) collectSystemMetrics() {
 	v, _ := mem.VirtualMemory()
 	a.mu.Lock()
@@ -132,15 +132,25 @@ func (a *Agent) collectSystemMetrics() {
 	a.metrics["FreeMemory"] = float64(v.Free)
 	a.mu.Unlock()
 
-	// CPU Utilization
-	percents, err := cpu.Percent(time.Second, true)
-	if err == nil {
-		a.mu.Lock()
-		for i, p := range percents {
-			a.metrics[fmt.Sprintf("CPUUtilization%d", i+1)] = p
-		}
-		a.mu.Unlock()
+	times, err := cpu.Times(false)
+	if err != nil || len(times) == 0 {
+		return
 	}
+	total := times[0].Total()
+	idle := times[0].Idle
+
+	a.mu.Lock()
+	if prevTotal, exists := a.metrics["CPUPrevTotal"]; exists {
+		prevIdle := a.metrics["CPUPrevIdle"]
+		deltaTotal := total - prevTotal
+		if deltaTotal > 0 {
+			cpuUsage := 100 * (1 - (idle-prevIdle)/deltaTotal)
+			a.metrics["CPUUtilization1"] = cpuUsage
+		}
+	}
+	a.metrics["CPUPrevTotal"] = total
+	a.metrics["CPUPrevIdle"] = idle
+	a.mu.Unlock()
 }
 
 func (a *Agent) collectRuntimeMetrics() {
@@ -216,11 +226,8 @@ func (a *Agent) reportMetrics(stopCh <-chan struct{}) {
 		case <-ticker.C:
 			metrics := a.copyMetrics()
 			if len(metrics) > 0 {
-				select {
-				case jobs <- metrics:
-				default:
-					fmt.Println("Rate limit exceeded, skipping batch")
-				}
+				// Блокируем, если воркеры не успевают — нет потерь метрик
+				jobs <- metrics
 			}
 		}
 	}
