@@ -1,3 +1,4 @@
+// agent/agent.go
 package agent
 
 import (
@@ -5,7 +6,6 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/rand/v2"
 	"net/http"
 	"runtime"
@@ -14,6 +14,10 @@ import (
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
+	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
+
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 type Agent struct {
@@ -26,12 +30,15 @@ type Agent struct {
 	httpClient     *http.Client
 	maxRetries     int
 	retryDelays    []time.Duration
+	key            string
+	rateLimit      int
 }
 
 func NewAgent(cfg config.AgentConfig) *Agent {
 	return &Agent{
 		pollInterval:   cfg.PollInterval,
 		reportInterval: cfg.ReportInterval,
+		key:            cfg.Key,
 		url:            "http://" + cfg.Host + "/updates/",
 		pollCount:      0,
 		metrics:        make(map[string]float64),
@@ -39,30 +46,27 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 		httpClient:     &http.Client{},
 		maxRetries:     3,
 		retryDelays:    []time.Duration{time.Second, 3 * time.Second, 5 * time.Second},
+		rateLimit:      cfg.RateLimit,
 	}
 }
 
 func compress(data []byte) ([]byte, error) {
-
 	var buf bytes.Buffer
 	gw := gzip.NewWriter(&buf)
-	_, err := gw.Write(data)
-	if err != nil {
+	if _, err := gw.Write(data); err != nil {
 		return nil, fmt.Errorf("error writing to gzip: %v", err)
 	}
-	err = gw.Flush()
-	if err != nil {
+	if err := gw.Flush(); err != nil {
 		return nil, fmt.Errorf("the flush gzip error: %v", err)
 	}
-	err = gw.Close()
-	if err != nil {
+	if err := gw.Close(); err != nil {
 		return nil, fmt.Errorf("gzip closing error: %v", err)
 	}
 	return buf.Bytes(), nil
 }
 
-func (a *Agent) sendRequest(metrics []models.Metrics) {
-
+// sendMetric отправляет пакет метрик с retry-логикой
+func (a *Agent) sendMetric(metrics []models.Metrics) {
 	for attempt := 0; ; attempt++ {
 		out, err := json.Marshal(metrics)
 		if err != nil {
@@ -84,117 +88,190 @@ func (a *Agent) sendRequest(metrics []models.Metrics) {
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Content-Encoding", "gzip")
 
+		if a.key != "" {
+			req.Header.Set("HashSHA256", helpers.CalcSHA256Hash(compressedData))
+		}
+
 		resp, err := a.httpClient.Do(req)
 		if err != nil {
 			if attempt >= a.maxRetries {
-				fmt.Printf("Unsuccessful request sending after maximum attempts (%d)\n", a.maxRetries)
+				fmt.Printf("Unsuccessful request after max retries: %v\n", err)
 				return
 			}
-
-			fmt.Printf("Request sending error: %v, repeat via %v\n", err, a.retryDelays[attempt])
 			time.Sleep(a.retryDelays[attempt])
-
 			continue
 		}
-		defer resp.Body.Close()
+		resp.Body.Close()
 
-		bodyBytes, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode != http.StatusOK {
 			if attempt >= a.maxRetries {
-				fmt.Printf("Failed request (code: %d, body: %q) after maximum attempts (%d)\n", resp.StatusCode, bodyBytes, a.maxRetries)
+				fmt.Printf("Failed with status %d\n", resp.StatusCode)
 				return
 			}
-			fmt.Printf("Incorrect status received (%d): %q, repeat after %v\n", resp.StatusCode, bodyBytes, a.retryDelays[attempt])
 			time.Sleep(a.retryDelays[attempt])
 			continue
 		}
 
-		fmt.Printf("The request was sent successfully!\n")
-		
+		fmt.Printf("Successfully sent %d metrics\n", len(metrics))
 		return
 	}
 }
 
-func (a *Agent) reportMetrics() {
-	
-	
-	for {
-
-		metrics := make([]models.Metrics, 0)
-
-		for key, value := range a.metrics {
-			metrics = append(metrics, models.Metrics{
-				ID:    key,
-				MType: models.Gauge,
-				Value: &value,
-			})
-		}
-
-		v := int64(a.pollCount)
-		metrics = append(metrics, models.Metrics{
-			ID:    "PollCount",
-			MType: models.Counter,
-			Delta: &v,
-		})
-
-		a.sendRequest(metrics)
-
-		time.Sleep(time.Duration(a.reportInterval) * time.Second)
-		
+func (a *Agent) worker(jobs <-chan []models.Metrics, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for metrics := range jobs {
+		a.sendMetric(metrics)
 	}
-
 }
 
-func (a *Agent) monitoringMetrics(stopCh <-chan struct{}) {
+// collectSystemMetrics собирает метрики без блокировки
+func (a *Agent) collectSystemMetrics() {
+	v, _ := mem.VirtualMemory()
+	a.mu.Lock()
+	a.metrics["TotalMemory"] = float64(v.Total)
+	a.metrics["FreeMemory"] = float64(v.Free)
+	a.mu.Unlock()
+
+	times, err := cpu.Times(false)
+	if err != nil || len(times) == 0 {
+		return
+	}
+	ts := times[0]
+	total := ts.User + ts.System + ts.Idle + ts.Nice + ts.Iowait +
+		ts.Irq + ts.Softirq + ts.Steal + ts.Guest + ts.GuestNice
+	idle := ts.Idle
+
+	a.mu.Lock()
+	if prevTotal, exists := a.metrics["CPUPrevTotal"]; exists {
+		prevIdle := a.metrics["CPUPrevIdle"]
+		deltaTotal := total - prevTotal
+		if deltaTotal > 0 {
+			cpuUsage := 100 * (1 - (idle-prevIdle)/deltaTotal)
+			a.metrics["CPUUtilization1"] = cpuUsage
+		}
+	}
+	a.metrics["CPUPrevTotal"] = total
+	a.metrics["CPUPrevIdle"] = idle
+	a.mu.Unlock()
+}
+
+func (a *Agent) collectRuntimeMetrics() {
 	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+
+	a.mu.Lock()
+	a.metrics["Alloc"] = float64(memStats.Alloc)
+	a.metrics["BuckHashSys"] = float64(memStats.BuckHashSys)
+	a.metrics["GCCPUFraction"] = memStats.GCCPUFraction
+	a.metrics["HeapAlloc"] = float64(memStats.HeapAlloc)
+	a.metrics["HeapIdle"] = float64(memStats.HeapIdle)
+	a.metrics["HeapInuse"] = float64(memStats.HeapInuse)
+	a.metrics["HeapObjects"] = float64(memStats.HeapObjects)
+	a.metrics["HeapReleased"] = float64(memStats.HeapReleased)
+	a.metrics["HeapSys"] = float64(memStats.HeapSys)
+	a.metrics["LastGC"] = float64(memStats.LastGC)
+	a.metrics["Lookups"] = float64(memStats.Lookups)
+	a.metrics["MCacheInuse"] = float64(memStats.MCacheInuse)
+	a.metrics["MCacheSys"] = float64(memStats.MCacheSys)
+	a.metrics["MSpanInuse"] = float64(memStats.MSpanInuse)
+	a.metrics["MSpanSys"] = float64(memStats.MSpanSys)
+	a.metrics["Mallocs"] = float64(memStats.Mallocs)
+	a.metrics["NextGC"] = float64(memStats.NextGC)
+	a.metrics["NumForcedGC"] = float64(memStats.NumForcedGC)
+	a.metrics["NumGC"] = float64(memStats.NumGC)
+	a.metrics["OtherSys"] = float64(memStats.OtherSys)
+	a.metrics["PauseTotalNs"] = float64(memStats.PauseTotalNs)
+	a.metrics["StackInuse"] = float64(memStats.StackInuse)
+	a.metrics["StackSys"] = float64(memStats.StackSys)
+	a.metrics["Sys"] = float64(memStats.Sys)
+	a.metrics["TotalAlloc"] = float64(memStats.TotalAlloc)
+	a.metrics["RandomValue"] = rand.Float64()
+	a.metrics["Frees"] = float64(memStats.Frees)
+	a.metrics["GCSys"] = float64(memStats.GCSys)
+	a.pollCount++
+	a.mu.Unlock()
+}
+
+func (a *Agent) pollMetrics(stopCh <-chan struct{}) {
+	ticker := time.NewTicker(time.Duration(a.pollInterval) * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-stopCh:
 			return
-		default:
-			runtime.ReadMemStats(&memStats)
-			a.mu.Lock()
-			a.metrics["Alloc"] = float64(memStats.Alloc)
-			a.metrics["BuckHashSys"] = float64(memStats.BuckHashSys)
-			a.metrics["GCCPUFraction"] = memStats.GCCPUFraction
-			a.metrics["HeapAlloc"] = float64(memStats.HeapAlloc)
-			a.metrics["HeapIdle"] = float64(memStats.HeapIdle)
-			a.metrics["HeapInuse"] = float64(memStats.HeapInuse)
-			a.metrics["HeapObjects"] = float64(memStats.HeapObjects)
-			a.metrics["HeapReleased"] = float64(memStats.HeapReleased)
-			a.metrics["HeapSys"] = float64(memStats.HeapSys)
-			a.metrics["LastGC"] = float64(memStats.LastGC)
-			a.metrics["Lookups"] = float64(memStats.Lookups)
-			a.metrics["MCacheInuse"] = float64(memStats.MCacheInuse)
-			a.metrics["MCacheSys"] = float64(memStats.MCacheSys)
-			a.metrics["MSpanInuse"] = float64(memStats.MSpanInuse)
-			a.metrics["MSpanSys"] = float64(memStats.MSpanSys)
-			a.metrics["Mallocs"] = float64(memStats.Mallocs)
-			a.metrics["NextGC"] = float64(memStats.NextGC)
-			a.metrics["NumForcedGC"] = float64(memStats.NumForcedGC)
-			a.metrics["NumGC"] = float64(memStats.NumGC)
-			a.metrics["OtherSys"] = float64(memStats.OtherSys)
-			a.metrics["PauseTotalNs"] = float64(memStats.PauseTotalNs)
-			a.metrics["StackInuse"] = float64(memStats.StackInuse)
-			a.metrics["StackSys"] = float64(memStats.StackSys)
-			a.metrics["Sys"] = float64(memStats.Sys)
-			a.metrics["TotalAlloc"] = float64(memStats.TotalAlloc)
-			a.metrics["RandomValue"] = rand.Float64()
-			a.metrics["Frees"] = float64(memStats.Frees)
-			a.metrics["GCSys"] = float64(memStats.GCSys)
-			a.pollCount += 1
-			a.mu.Unlock()
-			time.Sleep(time.Duration(a.pollInterval) * time.Second)
+		case <-ticker.C:
+			a.collectRuntimeMetrics()
+			a.collectSystemMetrics()
 		}
-
 	}
 }
 
+func (a *Agent) reportMetrics(stopCh <-chan struct{}) {
+	jobs := make(chan []models.Metrics, a.rateLimit*2)
+	var wg sync.WaitGroup
+
+	for i := 0; i < a.rateLimit; i++ {
+		wg.Add(1)
+		go a.worker(jobs, &wg)
+	}
+
+	ticker := time.NewTicker(time.Duration(a.reportInterval) * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-stopCh:
+			close(jobs)
+			wg.Wait()
+			return
+		case <-ticker.C:
+			metrics := a.copyMetrics()
+			if len(metrics) > 0 {
+				// Блокируем, если воркеры не успевают — нет потерь метрик
+				jobs <- metrics
+			}
+		}
+	}
+}
+
+func (a *Agent) copyMetrics() []models.Metrics {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	result := make([]models.Metrics, 0, len(a.metrics)+1)
+
+	for key, value := range a.metrics {
+		result = append(result, models.Metrics{
+			ID:    key,
+			MType: models.Gauge,
+			Value: &value,
+		})
+	}
+
+	v := int64(a.pollCount)
+	result = append(result, models.Metrics{
+		ID:    "PollCount",
+		MType: models.Counter,
+		Delta: &v,
+	})
+
+	return result
+}
+
 func (a *Agent) Start(stopCh <-chan struct{}) {
-	monitoringStop := make(chan struct{})
-	go a.monitoringMetrics(monitoringStop)
-	go a.reportMetrics()
-	<-stopCh
-	close(monitoringStop)
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		a.pollMetrics(stopCh)
+	}()
+
+	go func() {
+		defer wg.Done()
+		a.reportMetrics(stopCh)
+	}()
+
+	wg.Wait()
 }

@@ -22,6 +22,7 @@ func main() {
 	router.Use(handlers.LoggingMiddleware)
 	router.Use(handlers.GzipRequestMiddleware)
 	router.Use(handlers.GzipResponseMiddleware)
+	router.Use(handlers.ShaMiddleware(cfg.Key))
 
 	h := &handlers.Handler{Storage: storage.NewMemStorage(*cfg)}
 

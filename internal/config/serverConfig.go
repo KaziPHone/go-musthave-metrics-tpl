@@ -13,6 +13,7 @@ type ServerConfig struct {
 	Restore       bool   `env:"RESTORE"`
 	DataBaseDsn   string `env:"DATABASE_DSN"`
 	MigratePath   string `env:"MIGRATE_PATH"`
+	Key           string `env:"KEY"`
 }
 
 func NewConfigServer() (*ServerConfig, error) {
@@ -23,6 +24,7 @@ func NewConfigServer() (*ServerConfig, error) {
 	flag.IntVar(&cfg.StoreInterval, "i", 300, "Интервал времени в секундах, по истечении которого текущие показания сервера сохраняются на диск")
 	flag.BoolVar(&cfg.Restore, "r", false, "Восстановление данных из файла, если он существует")
 	flag.StringVar(&cfg.DataBaseDsn, "d", "", "Строка подключения к базе данных")
+	flag.StringVar(&cfg.Key, "k", "", "Ключ")
 
 	flag.Parse()
 

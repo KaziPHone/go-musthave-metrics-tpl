@@ -1,13 +1,15 @@
 package handlers
 
 import (
-	"bufio"
 	"bytes"
 	"compress/gzip"
-	"github.com/rs/zerolog/log"
+	"context"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
+	"github.com/rs/zerolog/log"
 )
 
 type gzipWriter struct {
@@ -23,7 +25,18 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 func GzipRequestMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		originalBody, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read compressed body", http.StatusBadRequest)
+			log.Print(err)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), helpers.OriginalBodyKey, originalBody)
+		r = r.WithContext(ctx)
+
 		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
 			h.ServeHTTP(w, r)
 			return
 		}
@@ -34,8 +47,8 @@ func GzipRequestMiddleware(h http.Handler) http.Handler {
 			return
 		}
 
-		reader := bufio.NewReader(r.Body)
-		gzReader, err := gzip.NewReader(reader)
+
+		gzReader, err := gzip.NewReader(bytes.NewReader(originalBody))
 		if err != nil {
 			http.Error(w, "Ошибка обработки gzipped-запроса", http.StatusBadRequest)
 			log.Print(err)

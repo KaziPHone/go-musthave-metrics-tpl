@@ -14,16 +14,18 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 
 	metric, err := h.singleMetric(r)
 
-	mResponse := models.Metrics{
-		ID:    metric.ID,
-		MType: metric.MType,
-	}
-
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
 	}
+
+	mResponse := models.Metrics{
+		ID:    metric.ID,
+		MType: metric.MType,
+	}
+
+
 	if v, ok := h.Storage.GetMetric(metric.ID); !ok {
 		w.WriteHeader(http.StatusNotFound)
 		resp, err := json.MarshalIndent(mResponse, "", " ")
