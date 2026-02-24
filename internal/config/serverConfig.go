@@ -15,7 +15,7 @@ type ServerConfig struct {
 	MigratePath   string `env:"MIGRATE_PATH"`
 	Key           string `env:"KEY"`
 	AuditFile     string `env:"AUDIT_FILE"`
-	AuditUrl      string `env:"AUDIT_URL"`
+	AuditURL      string `env:"AUDIT_URL"`
 }
 
 func NewConfigServer() (*ServerConfig, error) {
