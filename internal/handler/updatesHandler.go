@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"net/http"
+
+	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
 )
 
 func (h *Handler) UpdatesHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,6 +18,8 @@ func (h *Handler) UpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.Storage.UpdatesMetrics(metrics)
+
+	go h.NotifyAudit(helpers.GetMetrics(metrics), helpers.GetClientIP(r))
 
 	w.Write([]byte("{}"))
 }
