@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
+	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -43,6 +44,8 @@ func (h *Handler) UpdateValueHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.Storage.UpdateMetric(nameMetric, typeMetric, value)
+
+	go h.NotifyAudit([]string{nameMetric}, helpers.GetClientIP(r))
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Updated successfully")

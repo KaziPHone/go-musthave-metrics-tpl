@@ -14,6 +14,8 @@ type ServerConfig struct {
 	DataBaseDsn   string `env:"DATABASE_DSN"`
 	MigratePath   string `env:"MIGRATE_PATH"`
 	Key           string `env:"KEY"`
+	AuditFile     string `env:"AUDIT_FILE"`
+	AuditURL      string `env:"AUDIT_URL"`
 }
 
 func NewConfigServer() (*ServerConfig, error) {
