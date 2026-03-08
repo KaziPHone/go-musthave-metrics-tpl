@@ -39,7 +39,7 @@ func (h *Handler) NotifyAudit(metrics []string, ip string) {
 	if h.AuditSubject != nil {
 
 		event := audit.AuditEvent{
-			Ts:        time.Now().Unix(),
+			TS:        time.Now().Unix(),
 			Metrics:   metrics,
 			IPAddress: ip,
 		}
