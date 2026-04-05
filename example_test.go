@@ -110,7 +110,8 @@ func Example_handler() {
 	// Отправляем метрику
 	req, _ := http.NewRequest("POST", server.URL+"/update/gauge/test_gauge/42.5", nil)
 	req.Header.Set("Content-Type", "text/plain")
-	http.DefaultClient.Do(req)
+	resp1, _ := http.DefaultClient.Do(req)
+	resp1.Body.Close()
 
 	// Проверяем результат
 	resp, err := http.Get(server.URL + "/value/gauge/test_gauge")
@@ -372,11 +373,10 @@ func Example_contextHelper() {
 	req, _ := http.NewRequest("POST", "/", bytes.NewBuffer(data))
 
 	// Контекст для хранения оригинального тела
-	ctx := context.WithValue(req.Context(), helpers.OriginalBodyKey, data)
-	req = req.WithContext(ctx)
+	req = req.WithContext(context.WithValue(req.Context(), helpers.OriginalBodyKey, data))
 
 	// Получаем тело из контекста
-	originalBody, ok := ctx.Value(helpers.OriginalBodyKey).([]byte)
+	originalBody, ok := req.Context().Value(helpers.OriginalBodyKey).([]byte)
 	fmt.Printf("Body exists: %v, length: %d\n", ok, len(originalBody))
 	// Output:
 	// Body exists: true, length: 47
