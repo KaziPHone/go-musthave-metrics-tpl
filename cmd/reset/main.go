@@ -342,13 +342,13 @@ func generateFieldReset(field fieldInfo, receiver string) string {
 		if field.IsPointer {
 			buf.WriteString(fmt.Sprintf("if %s != nil {\n", fieldRef))
 			buf.WriteString(fmt.Sprintf("if resetter, ok := (*%s).(interface{ Reset() }); ok {\n", fieldRef))
-			buf.WriteString(fmt.Sprintf("resetter.Reset()\n"))
+			buf.WriteString("resetter.Reset()\n")
 			buf.WriteString("}\n")
 			buf.WriteString("}\n")
 			return buf.String()
 		}
 		buf.WriteString(fmt.Sprintf("if resetter, ok := %s.(interface{ Reset() }); ok && %s != nil {\n", fieldRef, fieldRef))
-		buf.WriteString(fmt.Sprintf("resetter.Reset()\n"))
+		buf.WriteString("resetter.Reset()\n")
 		buf.WriteString("}\n")
 		return buf.String()
 	}
@@ -359,11 +359,11 @@ func generateFieldReset(field fieldInfo, receiver string) string {
 
 		// Проверяем, указывает ли указатель на тип с Reset или срез/мапу
 		if isPointerTypeWithReset(field.TypeName) {
-			buf.WriteString(fmt.Sprintf(".Reset()\n"))
+			buf.WriteString(".Reset()\n")
 		} else if field.IsSlice {
 			buf.WriteString(fmt.Sprintf(" = %s[:0]\n", fieldRef))
 		} else if field.IsMap {
-			buf.WriteString(fmt.Sprintf("\n"))
+			buf.WriteString("\n")
 			buf.WriteString(fmt.Sprintf("clear(*%s)\n", fieldRef))
 		} else {
 			buf.WriteString(fmt.Sprintf(" = %s\n", getZeroValue(field.TypeName)))
