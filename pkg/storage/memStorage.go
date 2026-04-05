@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
@@ -27,6 +28,7 @@ type IStorage interface {
 }
 
 type MStorage struct {
+	mu            sync.RWMutex
 	MetricTypes   map[string]*MetricType
 	fileStorage   string `env:"FILE_STORAGE_PATH"`
 	storeInterval int    `env:"STORE_INTERVAL"`

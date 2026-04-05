@@ -21,6 +21,9 @@ func (m *MStorage) UpdateMetric(metricName, typeMetric string, value interface{}
 
 // ListMetrics возвращает список метрик
 func (m *MStorage) ListMetrics() map[string]*MetricType {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if m.isStorageBD() {
 		return m.dataBase.getMetrics()
 	}
@@ -29,6 +32,9 @@ func (m *MStorage) ListMetrics() map[string]*MetricType {
 
 // GetMetric возвращает метрику по имени
 func (m *MStorage) GetMetric(metricName string) (*MetricType, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if m.isStorageBD() {
 		return m.dataBase.getMetric(metricName)
 	}

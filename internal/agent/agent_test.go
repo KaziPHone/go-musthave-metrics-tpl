@@ -224,7 +224,9 @@ func TestAgent_sendMetric_RetrySuccess(t *testing.T) {
 }
 
 func TestAgent_sendMetric_HTTPError(t *testing.T) {
+	// Use a fast server that closes connection immediately without retries
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Just close without writing response
 		hijacker, ok := w.(http.Hijacker)
 		if ok {
 			conn, _, _ := hijacker.Hijack()
@@ -234,9 +236,12 @@ func TestAgent_sendMetric_HTTPError(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.AgentConfig{
-		Host: server.URL[len("http://"):],
+		Host:         server.URL[len("http://"):],
+		PollInterval: 1, // Minimal intervals for fast tests
 	}
 	agent := NewAgent(cfg)
+	agent.maxRetries = 1                      // Only 1 retry instead of 3
+	agent.retryDelays = []time.Duration{0}    // No delay between retries
 
 	testMetrics := []models.Metrics{{ID: "test", MType: models.Gauge, Value: floatPtr(1.0)}}
 
@@ -253,7 +258,7 @@ func TestAgent_pollMetrics(t *testing.T) {
 	stopCh := make(chan struct{})
 	go agent.pollMetrics(stopCh)
 
-	time.Sleep(1500 * time.Millisecond)
+	time.Sleep(1100 * time.Millisecond)
 
 	close(stopCh)
 
@@ -281,7 +286,7 @@ func TestAgent_reportMetrics(t *testing.T) {
 	stopCh := make(chan struct{})
 	go agent.reportMetrics(stopCh)
 
-	time.Sleep(1500 * time.Millisecond)
+	time.Sleep(1100 * time.Millisecond)
 
 	close(stopCh)
 }
@@ -297,7 +302,7 @@ func TestAgent_Start(t *testing.T) {
 	stopCh := make(chan struct{})
 
 	go func() {
-		time.Sleep(2 * time.Second)
+		time.Sleep(1100 * time.Millisecond)
 		close(stopCh)
 	}()
 
