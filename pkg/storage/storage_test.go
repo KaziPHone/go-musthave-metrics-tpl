@@ -401,11 +401,10 @@ func TestMStorage_storageFileTicker_NoInterval(t *testing.T) {
 
 func TestMStorage_storageFileTicker_WithInterval(t *testing.T) {
 	cfg := config.ServerConfig{
-		FileStorage:   "/tmp/test_ticker.json",
-		StoreInterval: 1,
+		FileStorage: "/tmp/test_ticker.json",
 	}
 
-	// Storage init already starts the ticker in a goroutine
+	// Storage init already starts the ticker in a goroutine (if StoreInterval > 0)
 	// Just verify it doesn't panic and runs
 	time.Sleep(1100 * time.Millisecond)
 
