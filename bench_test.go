@@ -309,14 +309,8 @@ func BenchmarkShaMiddleware(b *testing.B) {
 	for i := range data {
 		data[i] = byte(i % 256)
 	}
-	
-	hash := helpers.CalcSHA256Hash(data)
-	body := bytes.NewReader(data)
 
-	req := httptest.NewRequest("POST", "/test", body)
-	req.Header.Set("HashSHA256", hash)
-	ctx := context.WithValue(req.Context(), helpers.OriginalBodyKey, data)
-	req = req.WithContext(ctx)
+	hash := helpers.CalcSHA256Hash(data)
 
 	// Простой handler для теста
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
