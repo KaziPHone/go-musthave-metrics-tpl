@@ -1,0 +1,72 @@
+File: go-musthave-metrics-tpl.test
+Type: alloc_space
+Time: 2026-04-05 10:37:54 MSK
+Showing nodes accounting for 54657.08MB, 97.33% of 56158.28MB total
+Dropped 104 nodes (cum <= 280.79MB)
+      flat  flat%   sum%        cum   cum%
+14636.17MB 26.06% 26.06% 17763.84MB 31.63%  compress/flate.NewWriter (inline)
+11556.22MB 20.58% 46.64% 11556.22MB 20.58%  compress/flate.(*dictDecoder).init (inline)
+ 6380.73MB 11.36% 58.00%  6387.24MB 11.37%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers.GetMetrics
+ 6229.70MB 11.09% 69.10%  6229.70MB 11.09%  bufio.NewReaderSize (inline)
+ 3042.10MB  5.42% 74.51%  3042.10MB  5.42%  compress/flate.(*compressor).initDeflate (inline)
+ 2724.37MB  4.85% 79.36% 14280.59MB 25.43%  compress/flate.NewReader
+ 1380.56MB  2.46% 81.82%  1383.06MB  2.46%  fmt.Sprintf
+ 1309.64MB  2.33% 84.15%  1309.64MB  2.33%  encoding/json.(*Decoder).refill
+ 1188.58MB  2.12% 86.27%  1188.58MB  2.12%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage.(*MStorage).updateMetricMemory
+ 1068.56MB  1.90% 88.17%  1068.56MB  1.90%  io.ReadAll
+  806.75MB  1.44% 89.61%   806.75MB  1.44%  encoding/json.NewDecoder (inline)
+  687.21MB  1.22% 90.83%   687.21MB  1.22%  net/http.(*Request).WithContext (inline)
+  671.16MB  1.20% 92.03%   671.16MB  1.20%  bytes.growSlice
+  636.19MB  1.13% 93.16%   672.19MB  1.20%  net/textproto.MIMEHeader.Set (inline)
+  492.15MB  0.88% 94.04%   835.69MB  1.49%  net/http.readRequest
+  391.29MB   0.7% 94.73%   391.29MB   0.7%  reflect.growslice
+  268.68MB  0.48% 95.21% 14549.27MB 25.91%  compress/gzip.NewReader (partial-inline)
+  257.51MB  0.46% 95.67%   607.53MB  1.08%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers.CalcSHA256HashBuffer
+     191MB  0.34% 96.01%   830.42MB  1.48%  github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler.(*Handler).ListMetricsHandler
+  159.01MB  0.28% 96.29%  2372.84MB  4.23%  github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler.(*Handler).singleMetric
+  152.01MB  0.27% 96.57%   286.01MB  0.51%  encoding/json.(*decodeState).object
+     100MB  0.18% 96.74%   396.04MB  0.71%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkStorage_GetMetric
+   89.50MB  0.16% 96.90%   445.52MB  0.79%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers.CalcSHA256Hash
+   78.50MB  0.14% 97.04%   875.81MB  1.56%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkStorage_UpdateMetric_Counter
+   64.50MB  0.11% 97.16%   609.74MB  1.09%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkStorage_UpdateMetric
+      35MB 0.062% 97.22%  7651.54MB 13.62%  net/http/httptest.NewRequestWithContext
+      29MB 0.052% 97.27%   700.16MB  1.25%  bytes.(*Buffer).grow
+      12MB 0.021% 97.29%   678.51MB  1.21%  github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler.(*Handler).UpdatesHandler
+   10.50MB 0.019% 97.31%  3015.40MB  5.37%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkShaMiddleware
+    4.50MB 0.008% 97.32%   632.35MB  1.13%  github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler.(*Handler).multipleMetrics
+    3.50MB 0.0062% 97.33%  7139.84MB 12.71%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGzipRequestMiddleware.GzipRequestMiddleware.func2
+    0.50MB 0.00089% 97.33% 17934.47MB 31.94%  github.com/KaziPHone/go-musthave-metrics-tpl.compress
+         0     0% 97.33%  6229.70MB 11.09%  bufio.NewReader (inline)
+         0     0% 97.33%   700.16MB  1.25%  bytes.(*Buffer).Write
+         0     0% 97.33%  3127.66MB  5.57%  compress/flate.(*compressor).init
+         0     0% 97.33% 14280.59MB 25.43%  compress/gzip.(*Reader).Reset
+         0     0% 97.33% 14280.59MB 25.43%  compress/gzip.(*Reader).readHeader
+         0     0% 97.33% 17764.34MB 31.63%  compress/gzip.(*Writer).Write
+         0     0% 97.33%  2034.93MB  3.62%  encoding/json.(*Decoder).Decode
+         0     0% 97.33%  1356.14MB  2.41%  encoding/json.(*Decoder).readValue
+         0     0% 97.33%   461.79MB  0.82%  encoding/json.(*decodeState).array
+         0     0% 97.33%   678.79MB  1.21%  encoding/json.(*decodeState).unmarshal
+         0     0% 97.33%   678.79MB  1.21%  encoding/json.(*decodeState).value
+         0     0% 97.33%   638.41MB  1.14%  fmt.Fprintf
+         0     0% 97.33%   370.52MB  0.66%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkCalcSHA256Hash
+         0     0% 97.33%   511.53MB  0.91%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkCalcSHA256HashBuffer
+         0     0% 97.33%  4878.38MB  8.69%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGetClientIP
+         0     0% 97.33%  6360.73MB 11.33%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGetMetrics
+         0     0% 97.33% 17930.75MB 31.93%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGzipCompress
+         0     0% 97.33%  8569.22MB 15.26%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGzipDecompress
+         0     0% 97.33%  8006.02MB 14.26%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGzipRequestMiddleware
+         0     0% 97.33%   830.92MB  1.48%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkHandler_ListMetricsHandler
+         0     0% 97.33%  2572.48MB  4.58%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkHandler_UpdateHandler
+         0     0% 97.33%   690.01MB  1.23%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkHandler_UpdatesHandler
+         0     0% 97.33%  8565.51MB 15.25%  github.com/KaziPHone/go-musthave-metrics-tpl.decompress
+         0     0% 97.33%  2425.98MB  4.32%  github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler.(*Handler).UpdateHandler
+         0     0% 97.33%  1188.58MB  2.12%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage.(*MStorage).UpdateMetric
+         0     0% 97.33%  7405.80MB 13.19%  net/http.HandlerFunc.ServeHTTP (inline)
+         0     0% 97.33%   672.19MB  1.20%  net/http.Header.Set (inline)
+         0     0% 97.33%   835.69MB  1.49%  net/http.ReadRequest
+         0     0% 97.33%   654.65MB  1.17%  net/http/httptest.(*ResponseRecorder).Write
+         0     0% 97.33%  7651.54MB 13.62%  net/http/httptest.NewRequest (inline)
+         0     0% 97.33%   391.29MB   0.7%  reflect.Value.Grow
+         0     0% 97.33%   391.29MB   0.7%  reflect.Value.grow
+         0     0% 97.33% 56146.27MB   100%  testing.(*B).launch
+         0     0% 97.33% 56151.61MB   100%  testing.(*B).runN

@@ -38,8 +38,10 @@ func (m *MStorage) GetMetric(metricName string) (*MetricType, bool) {
 
 // UpdatesMetrics обновление всех метрик
 func (m *MStorage) UpdatesMetrics(metrics []models.Metrics) {
-
-	for _, metric := range metrics {
+	// Предвычисляем количество итераций
+	n := len(metrics)
+	for i := 0; i < n; i++ {
+		metric := metrics[i]
 		var v interface{}
 		if metric.MType == models.Gauge {
 			v = metric.Value

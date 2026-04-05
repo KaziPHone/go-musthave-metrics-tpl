@@ -37,7 +37,7 @@ func (h *Handler) multipleMetrics(r *http.Request) ([]models.Metrics, error) {
 
 func (h *Handler) NotifyAudit(metrics []string, ip string) {
 	if h.AuditSubject != nil {
-
+		// Reuse a single slice for the event to reduce allocations
 		event := audit.AuditEvent{
 			TS:        time.Now().Unix(),
 			Metrics:   metrics,

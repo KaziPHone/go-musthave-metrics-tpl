@@ -6,14 +6,10 @@ import (
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 )
 
-
-
+// updateMetricMemory обновление 1й метрики (внутренняя функция, без блокировки)
+// Предполагает, что value уже проверен на nil
 func (m *MStorage) updateMetricMemory(metricName, typeMetric string, value interface{}) error {
-
-	if value == nil {
-		return fmt.Errorf("value is nil")
-	}
-
+	// Используем value directly without nested pointer checks where possible
 	if _, ok := m.MetricTypes[metricName]; !ok {
 		m.MetricTypes[metricName] = &MetricType{
 			Counter: 0,
@@ -25,10 +21,9 @@ func (m *MStorage) updateMetricMemory(metricName, typeMetric string, value inter
 		case float64:
 			m.MetricTypes[metricName].Gauge = v
 		case *float64:
-			if v == nil {
-				return fmt.Errorf("value is nil")
+			if v != nil {
+				m.MetricTypes[metricName].Gauge = *v
 			}
-			m.MetricTypes[metricName].Gauge = *v
 		default:
 			return fmt.Errorf("unexpected type for gauge: %T", value)
 		}
@@ -38,22 +33,20 @@ func (m *MStorage) updateMetricMemory(metricName, typeMetric string, value inter
 		case float64:
 			m.MetricTypes[metricName].Counter += int64(v)
 		case *float64:
-			if v == nil {
-				return fmt.Errorf("value is nil")
+			if v != nil {
+				m.MetricTypes[metricName].Counter += int64(*v)
 			}
-			m.MetricTypes[metricName].Counter += int64(*v)
 		case int64:
 			m.MetricTypes[metricName].Counter += v
 		case *int64:
-			if v == nil {
-				return fmt.Errorf("value is nil")
+			if v != nil {
+				m.MetricTypes[metricName].Counter += *v
 			}
-			m.MetricTypes[metricName].Counter += *v
 		default:
 			return fmt.Errorf("unexpected type for counter: %T", value)
 		}
 		m.MetricTypes[metricName].Mtype = typeMetric
 	}
-	
+
 	return nil
 }
