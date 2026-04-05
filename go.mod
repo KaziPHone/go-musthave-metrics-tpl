@@ -1,6 +1,6 @@
 module github.com/KaziPHone/go-musthave-metrics-tpl
 
-go 1.24.8
+go 1.25.1
 
 require (
 	github.com/caarlos0/env v3.5.0+incompatible
