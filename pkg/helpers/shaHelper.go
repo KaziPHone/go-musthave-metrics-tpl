@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// hasherPool allows reusing a hasher instance to avoid allocations
+// hasherPool позволяет повторно использовать экземпляр хэшера для избежания выделения памяти
 var hasherPool = sync.Pool{
 	New: func() interface{} {
 		return sha256.New()

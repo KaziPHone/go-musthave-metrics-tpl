@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// mockAuditObserver implements audit.Observer interface
+// mockAuditObserver реализует интерфейс audit.Observer
 type mockAuditObserver struct {
 	Events []audit.AuditEvent
 	mu     sync.Mutex
@@ -298,7 +298,7 @@ func TestListMetricsHandler(t *testing.T) {
 	memStorage := storage.NewMemStorage(config.ServerConfig{})
 	handler := &Handler{Storage: memStorage}
 
-	// Add some metrics first
+	// Сначала добавим несколько метрик
 	memStorage.UpdateMetric("test1", "gauge", 100.0)
 	memStorage.UpdateMetric("test2", "counter", int64(50))
 
@@ -332,12 +332,12 @@ func TestGetPingDBHandler_Success(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.GetPingDBHandler(rr, req)
 
-	// When DB is not connected (no DSN), it should return 500
+	// Когда БД не подключена (нет DSN), должен вернуться 500
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
 func TestGetPingDBHandler_DBError(t *testing.T) {
-	// When DB is not connected, it should return 500
+	// Когда БД не подключена, должен вернуться 500
 	memStorage := storage.NewMemStorage(config.ServerConfig{})
 	handler := &Handler{Storage: memStorage}
 
@@ -384,7 +384,7 @@ func TestHandler_multipleMetrics_EmptyBody(t *testing.T) {
 
 	result, err := handler.multipleMetrics(req)
 
-	assert.Error(t, err) // EOF error for empty body
+	assert.Error(t, err) // Ошибка EOF для пустого тела
 	assert.Nil(t, result)
 }
 
@@ -411,7 +411,7 @@ func TestHandler_NotifyAudit(t *testing.T) {
 
 	handler.NotifyAudit([]string{"metric1", "metric2"}, "192.168.1.1")
 
-	// Wait for async audit event
+	// Ждем асинхронного события аудита
 	time.Sleep(100 * time.Millisecond)
 
 	events := mockObserver.GetEvents()
@@ -425,10 +425,10 @@ func TestHandler_NotifyAudit(t *testing.T) {
 func TestHandler_NotifyAudit_NoSubject(t *testing.T) {
 	handler := &Handler{
 		Storage: storage.NewMemStorage(config.ServerConfig{}),
-		// No AuditSubject set
+		// AuditSubject не установлен
 	}
 
-	// Should not panic
+	// Не должно вызвать панику
 	handler.NotifyAudit([]string{"metric1"}, "192.168.1.1")
 }
 
@@ -439,7 +439,7 @@ func TestHandler_NotifyAudit_EmptyMetrics(t *testing.T) {
 		AuditSubject: subject,
 	}
 
-	// Should not panic with empty metrics
+	// Не должно вызвать панику с пустыми метриками
 	handler.NotifyAudit([]string{}, "192.168.1.1")
 }
 
@@ -451,7 +451,7 @@ func int64Ptr(i int64) *int64 {
 	return &i
 }
 
-// Tests for middlewares
+// Тесты для middleware
 func TestGzipRequestMiddleware_GzipEncoding(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -460,7 +460,7 @@ func TestGzipRequestMiddleware_GzipEncoding(t *testing.T) {
 
 	handlerWithMiddleware := GzipRequestMiddleware(handler)
 
-	// Create gzipped request body
+	// Создаем сжатое gzip тело запроса
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	gz.Write([]byte(`{"test": "data"}`))
@@ -499,7 +499,7 @@ func TestGzipRequestMiddleware_InvalidGzip(t *testing.T) {
 
 	handlerWithMiddleware := GzipRequestMiddleware(handler)
 
-	// Send invalid gzip data
+	// Отправляем недопустимые gzip данные
 	req := httptest.NewRequest("POST", "/test", bytes.NewReader([]byte{0x1f, 0x8b}))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
@@ -507,7 +507,7 @@ func TestGzipRequestMiddleware_InvalidGzip(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handlerWithMiddleware.ServeHTTP(rr, req)
 
-	// Should return error
+	// Должно вернуть ошибку
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
@@ -549,7 +549,7 @@ func TestGzipResponseMiddleware_GzipAccept(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "gzip", rr.Header().Get("Content-Encoding"))
-	// Response should be gzipped
+	// Response должен быть сжат
 }
 
 func TestGzipResponseMiddleware_NoGzipAccept(t *testing.T) {
@@ -585,7 +585,7 @@ func TestLoggingMiddleware(t *testing.T) {
 	handlerWithMiddleware.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusCreated, rr.Code)
-	// Logging is done via zerolog, hard to verify directly
+	// Логирование выполняется через zerolog, трудно проверить напрямую
 }
 
 func TestLoggingMiddleware_GetRequest(t *testing.T) {
@@ -615,7 +615,7 @@ func TestShaMiddleware_Success(t *testing.T) {
 	data := []byte(`{"test": "data"}`)
 	hash := helpers.CalcSHA256Hash(data)
 
-	// Create request with hash
+	// Создаем запрос с хэшем
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	gz.Write(data)
@@ -625,7 +625,7 @@ func TestShaMiddleware_Success(t *testing.T) {
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("HashSHA256", hash)
 
-	// Add original body to context
+	// Добавляем оригинальное тело в контекст
 	ctx := context.WithValue(req.Context(), helpers.OriginalBodyKey, data)
 	req = req.WithContext(ctx)
 
@@ -699,10 +699,10 @@ func TestGzipWriter_Write(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 4, n)
 
-	// Flush to get the data
+	// Сбрасываем для получения данных
 	gz.Close()
 
-	// Decompress and verify
+	// Декомпрессируем и проверяем
 	gr, _ := gzip.NewReader(&buf)
 	data, _ := io.ReadAll(gr)
 	assert.Equal(t, "test", string(data))
@@ -773,8 +773,8 @@ func TestGzipWriter_Close(t *testing.T) {
 	gw := gzipWriter{Writer: gz}
 	gw.Write([]byte("test"))
 
-	// Note: gzipWriter doesn't have Close, that's on gzip.Writer
-	// This test verifies the basic write functionality
+	// Примечание: gzipWriter не имеет Close, это на gzip.Writer
+	// Этот тест проверяет базовую функциональность записи
 	gz.Close()
 }
 
@@ -783,7 +783,7 @@ func TestShaRw_PreserveStatusCode(t *testing.T) {
 		statusCode:  http.StatusNotFound,
 	}
 
-	// statusCode should be preserved
+	// statusCode должен быть сохранен
 	assert.Equal(t, http.StatusNotFound, srw.statusCode)
 }
 

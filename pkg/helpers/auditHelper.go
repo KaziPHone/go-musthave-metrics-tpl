@@ -8,7 +8,7 @@ import (
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 )
 
-// reuse buffer for GetMetrics to avoid allocations
+// повторное использование буфера для GetMetrics, чтобы избежать выделения памяти
 var metricsBufferPool = sync.Pool{
 	New: func() interface{} {
 		return make([]string, 0, 10)
@@ -16,17 +16,17 @@ var metricsBufferPool = sync.Pool{
 }
 
 func GetClientIP(r *http.Request) string {
-	// Get IP without allocation - use strings.Index instead of strings.Split
+	// Получаем IP без выделения памяти - используем strings.Index вместо strings.Split
 	ip := r.Header.Get("X-Real-IP")
 	if ip == "" {
 		ip = r.Header.Get("X-Forwarded-For")
 		if ip != "" {
-			// Find first comma to extract first IP
+			// Находим первую запятую для извлечения первого IP
 			commaIdx := strings.Index(ip, ",")
 			if commaIdx > 0 {
 				ip = ip[:commaIdx]
 			}
-			// Trim spaces in-place
+			// Обрезаем пробелы на месте
 			for len(ip) > 0 && (ip[0] == ' ' || ip[0] == '\t') {
 				ip = ip[1:]
 			}
@@ -38,7 +38,7 @@ func GetClientIP(r *http.Request) string {
 	if ip == "" {
 		ip = r.RemoteAddr
 	}
-	// Split at last colon for port
+	// Разделяем по последнему двоеточию для порта
 	if colonIdx := strings.LastIndex(ip, ":"); colonIdx != -1 {
 		ip = ip[:colonIdx]
 	}
@@ -47,13 +47,13 @@ func GetClientIP(r *http.Request) string {
 
 func GetMetrics(metrics []models.Metrics) []string {
 	buf := metricsBufferPool.Get().([]string)
-	buf = buf[:0] // Clear the buffer
+	buf = buf[:0] // Очищаем буфер
 
 	for _, v := range metrics {
 		buf = append(buf, v.ID)
 	}
 
-	// Return a copy to avoid the caller modifying the pooled buffer
+	// Возвращаем копию, чтобы вызывающий не мог изменить буфер пула
 	result := make([]string, len(buf))
 	copy(result, buf)
 	metricsBufferPool.Put(buf)

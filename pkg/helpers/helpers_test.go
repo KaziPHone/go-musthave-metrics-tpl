@@ -75,7 +75,7 @@ func TestGetClientIP_RemoteAddr_IPv6(t *testing.T) {
 	ip := GetClientIP(req)
 
 	if ip != "[::1" {
-		t.Logf("Got IPv6 address: %s", ip)
+		t.Logf("Получен IPv6-адрес: %s", ip)
 	}
 }
 
@@ -84,7 +84,7 @@ func TestGetClientIP_EmptyHeaders(t *testing.T) {
 
 	ip := GetClientIP(req)
 
-	// Should fall back to RemoteAddr which is empty
+	// Должно вернуться в RemoteAddr, который пуст
 	if ip != "" {
 		t.Errorf("expected empty IP, got '%s'", ip)
 	}
@@ -132,7 +132,7 @@ func TestGetClientIP_XRealIPPriority(t *testing.T) {
 
 	ip := GetClientIP(req)
 
-	// X-Real-IP should take priority
+	// X-Real-IP должен иметь приоритет
 	if ip != "192.168.1.100" {
 		t.Errorf("expected '192.168.1.100' (X-Real-IP priority), got '%s'", ip)
 	}
@@ -156,7 +156,7 @@ func TestGetClientIP_Concurrent(t *testing.T) {
 	wg.Wait()
 	close(results)
 
-	// Verify all results are consistent
+	// Проверяем, что все результаты совпадают
 	for result := range results {
 		if result != "127.0.0.1" {
 			t.Errorf("expected '127.0.0.1', got '%s'", result)
@@ -170,7 +170,7 @@ func TestGetClientIP_Localhost(t *testing.T) {
 
 	ip := GetClientIP(req)
 
-	// localhost should be returned as-is (no colon to trim)
+	// Localhost должен быть возвращен как есть (без двоеточия для обрезки)
 	if ip != "localhost" {
 		t.Errorf("expected 'localhost', got '%s'", ip)
 	}
@@ -205,7 +205,7 @@ func TestGetClientIP_InvalidIP(t *testing.T) {
 
 	ip := GetClientIP(req)
 
-	// Should return as-is since there's no port to trim
+	// Должно вернуть как есть, так как нет двоеточия для обрезки
 	if ip != "not-an-ip" {
 		t.Errorf("expected 'not-an-ip', got '%s'", ip)
 	}
@@ -217,7 +217,7 @@ func TestGetClientIP_IPv4MappedIPv6(t *testing.T) {
 
 	ip := GetClientIP(req)
 
-	// Should extract the IPv4 part
+	// Должно извлечь часть IPv4
 	if ip != "::ffff:192.168.1.1" {
 		t.Errorf("expected '::ffff:192.168.1.1', got '%s'", ip)
 	}
@@ -245,7 +245,7 @@ func TestGetMetrics(t *testing.T) {
 	result := GetMetrics(metrics)
 
 	if len(result) != 3 {
-		t.Errorf("expected 3 metrics, got %d", len(result))
+		t.Errorf("expected 3 метрики, got %d", len(result))
 	}
 
 	expected := []string{"metric1", "metric2", "metric3"}
@@ -260,12 +260,12 @@ func TestGetMetrics_Empty(t *testing.T) {
 	result := GetMetrics(nil)
 
 	if len(result) != 0 {
-		t.Errorf("expected 0 metrics, got %d", len(result))
+		t.Errorf("expected 0 метрик, got %d", len(result))
 	}
 }
 
 func TestGetMetrics_BufferPoolReuse(t *testing.T) {
-	// Run multiple times to verify buffer pool behavior
+	// Запускаем несколько раз для проверки поведения пула буферов
 	for i := 0; i < 10; i++ {
 		metrics := []models.Metrics{{ID: "test"}}
 		result := GetMetrics(metrics)
@@ -279,15 +279,15 @@ func TestGetMetrics_BufferNotModified(t *testing.T) {
 	metrics := []models.Metrics{{ID: "original"}}
 	result := GetMetrics(metrics)
 
-	// Modifying result should not affect the pool buffer
+	// Изменение результата не должно повлиять на буфер пула
 	result[0] = "modified"
 
-	// Run again - should still return original values
+	// Запускаем снова - должно вернуть исходные значения
 	metrics2 := []models.Metrics{{ID: "test2"}}
 	result2 := GetMetrics(metrics2)
 	
 	if len(result2) == 1 && result2[0] != "test2" {
-		t.Errorf("expected 'test2', got '%s' - buffer pool was affected", result2[0])
+		t.Errorf("expected 'test2', got '%s' - буфер пула был затронут", result2[0])
 	}
 }
 
@@ -302,7 +302,7 @@ func TestGetMetrics_LargeBatch(t *testing.T) {
 	result := GetMetrics(metrics)
 
 	if len(result) != 1000 {
-		t.Errorf("expected 1000 metrics, got %d", len(result))
+		t.Errorf("expected 1000 метрик, got %d", len(result))
 	}
 
 	for i, id := range expected {
@@ -329,7 +329,7 @@ func TestGetMetrics_Concurrent(t *testing.T) {
 	wg.Wait()
 	close(results)
 
-	// Verify all results
+	// Проверяем все результаты
 	count := 0
 	for result := range results {
 		if len(result) != 1 || !strings.HasPrefix(result[0], "metric_") {
@@ -339,12 +339,12 @@ func TestGetMetrics_Concurrent(t *testing.T) {
 	}
 
 	if count != 100 {
-		t.Errorf("expected 100 results, got %d", count)
+		t.Errorf("expected 100 результатов, got %d", count)
 	}
 }
 
 func TestGetMetrics_BufferCapacity(t *testing.T) {
-	// Create a larger buffer to test capacity
+	// Создаем больший буфер для теста емкости
 	metrics := make([]models.Metrics, 20)
 	for i := 0; i < 20; i++ {
 		metrics[i] = models.Metrics{ID: fmt.Sprintf("m%d", i)}
@@ -352,7 +352,7 @@ func TestGetMetrics_BufferCapacity(t *testing.T) {
 
 	result := GetMetrics(metrics)
 	if len(result) != 20 {
-		t.Errorf("expected 20 metrics, got %d", len(result))
+		t.Errorf("expected 20 метрик, got %d", len(result))
 	}
 }
 
@@ -361,7 +361,7 @@ func TestGetMetrics_SingleElement(t *testing.T) {
 	result := GetMetrics(metrics)
 
 	if len(result) != 1 || result[0] != "only_one" {
-		t.Errorf("unexpected result: %v", result)
+		t.Errorf("неожиданный результат: %v", result)
 	}
 }
 
@@ -375,7 +375,7 @@ func TestGetMetrics_UnicodeIDs(t *testing.T) {
 	result := GetMetrics(metrics)
 
 	if len(result) != 3 {
-		t.Errorf("expected 3 metrics, got %d", len(result))
+		t.Errorf("expected 3 метрики, got %d", len(result))
 	}
 }
 
@@ -386,11 +386,11 @@ func TestGetMetrics_LongIDs(t *testing.T) {
 	result := GetMetrics(metrics)
 
 	if len(result) != 1 || result[0] != longID {
-		t.Errorf("unexpected result for long ID")
+		t.Errorf("неожиданный результат для длинного ID")
 	}
 }
 
-// Helper function for tests
+// Вспомогательная функция для тестов
 func floatPtr(f float64) *float64 {
 	return &f
 }
@@ -410,7 +410,7 @@ func TestGetMetrics_IDWithSpecialChars(t *testing.T) {
 	result := GetMetrics(metrics)
 
 	if len(result) != 4 {
-		t.Errorf("expected 4 metrics, got %d", len(result))
+		t.Errorf("expected 4 метрики, got %d", len(result))
 	}
 }
 
@@ -422,7 +422,7 @@ func TestGetMetrics_IDWithSpaces(t *testing.T) {
 	result := GetMetrics(metrics)
 
 	if len(result) != 1 || result[0] != "metric with spaces" {
-		t.Errorf("unexpected result: %v", result)
+		t.Errorf("неожиданный результат: %v", result)
 	}
 }
 
@@ -434,7 +434,7 @@ func TestGetMetrics_IDWithNewline(t *testing.T) {
 	result := GetMetrics(metrics)
 
 	if len(result) != 1 {
-		t.Errorf("expected 1 metric, got %d", len(result))
+		t.Errorf("expected 1 метрика, got %d", len(result))
 	}
 }
 
@@ -446,7 +446,7 @@ func TestGetMetrics_IDWithNullByte(t *testing.T) {
 	result := GetMetrics(metrics)
 
 	if len(result) != 1 {
-		t.Errorf("expected 1 metric, got %d", len(result))
+		t.Errorf("expected 1 метрика, got %d", len(result))
 	}
 }
 
@@ -458,7 +458,7 @@ func TestGetMetrics_IDWithControlChars(t *testing.T) {
 	result := GetMetrics(metrics)
 
 	if len(result) != 1 {
-		t.Errorf("expected 1 metric, got %d", len(result))
+		t.Errorf("expected 1 метрика, got %d", len(result))
 	}
 }
 
@@ -484,7 +484,7 @@ func TestGetMetrics_IDWithQuotes(t *testing.T) {
 	result := GetMetrics(metrics)
 
 	if len(result) != 2 {
-		t.Errorf("expected 2 metrics, got %d", len(result))
+		t.Errorf("expected 2 метрики, got %d", len(result))
 	}
 }
 

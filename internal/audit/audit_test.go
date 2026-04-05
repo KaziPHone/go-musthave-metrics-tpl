@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// Helper function to compare string slices
+// Вспомогательная функция для сравнения срезов строк
 func equalStringSlices(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
@@ -33,10 +33,10 @@ func TestSubject_Attach(t *testing.T) {
 
 	subject.mu.Lock()
 	if len(subject.observers) != 1 {
-		t.Errorf("expected 1 observer, got %d", len(subject.observers))
+		t.Errorf("expected 1 наблюдатель, got %d", len(subject.observers))
 	}
 	if subject.observers[0] != mockObserver {
-		t.Error("observer not attached correctly")
+		t.Error("наблюдатель не присоединен правильно")
 	}
 	subject.mu.Unlock()
 }
@@ -83,7 +83,7 @@ func TestSubject_Notify_Concurrent(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	// Concurrent notifications
+	// Параллельные уведомления
 	for i := 0; i < numEvents; i++ {
 		wg.Add(1)
 		go func(e AuditEvent) {
@@ -94,11 +94,11 @@ func TestSubject_Notify_Concurrent(t *testing.T) {
 
 	wg.Wait()
 
-	// Verify all observers received all events
+	// Проверяем, что все наблюдатели получили все события
 	for _, obs := range observers {
 		obs.mu.Lock()
 		if len(obs.receivedEvents) != numEvents {
-			t.Errorf("expected %d events, got %d", numEvents, len(obs.receivedEvents))
+			t.Errorf("expected %d событий, got %d", numEvents, len(obs.receivedEvents))
 		}
 		obs.mu.Unlock()
 	}
@@ -121,7 +121,7 @@ func TestFileObserver_OnAuditEvent(t *testing.T) {
 
 	observer.OnAuditEvent(event)
 
-	// Read file content
+	// Читаем содержимое файла
 	content, err := os.ReadFile(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("failed to read file: %v", err)
@@ -129,7 +129,7 @@ func TestFileObserver_OnAuditEvent(t *testing.T) {
 
 	var parsedEvent AuditEvent
 	if err := json.Unmarshal(content, &parsedEvent); err != nil {
-		t.Fatalf("failed to parse JSON: %v", err)
+		t.Fatalf("не удалось разобрать JSON: %v", err)
 	}
 
 	if parsedEvent.TS != event.TS {
@@ -141,7 +141,7 @@ func TestFileObserver_OnAuditEvent_FileError(t *testing.T) {
 	observer := NewFileObserver("/nonexistent/path/audit.log")
 	event := AuditEvent{TS: 1234567890}
 
-	// Should not panic on error
+	// Не должно вызвать панику при ошибке
 	observer.OnAuditEvent(event)
 }
 
@@ -168,7 +168,7 @@ func TestHTTPObserver_OnAuditEvent_HTTPError(t *testing.T) {
 	observer := NewHTTPObserver("http://nonexistent-server:9999")
 	event := AuditEvent{TS: 1234567890}
 
-	// Should not panic on network error
+	// Не должно вызвать панику при сетевой ошибке
 	observer.OnAuditEvent(event)
 }
 
@@ -197,7 +197,7 @@ func TestHTTPObserver_OnAuditEvent_NonJSONResponse(t *testing.T) {
 	observer.OnAuditEvent(event)
 }
 
-// Mock observer for testing
+// Mock наблюдатель для тестирования
 type mockObserver struct {
 	receivedEvents []AuditEvent
 	mu             sync.Mutex
@@ -223,7 +223,7 @@ func TestNewHTTPObserver(t *testing.T) {
 	observer := NewHTTPObserver(url)
 
 	if observer.url != url {
-		t.Errorf("expected url %s, got %s", url, observer.url)
+		t.Errorf("ожидаемый url %s, получил %s", url, observer.url)
 	}
 }
 
@@ -271,13 +271,13 @@ func TestFileObserver_MultipleWrites(t *testing.T) {
 
 	content, err := os.ReadFile(tmpFile.Name())
 	if err != nil {
-		t.Fatalf("failed to read file: %v", err)
+		t.Fatalf("не удалось прочитать файл: %v", err)
 	}
 
-	// Count newlines
+	// Считаем количество новых строк
 	lines := strings.Count(string(content), "\n")
 	if lines != 5 {
-		t.Errorf("expected 5 lines, got %d", lines)
+		t.Errorf("expected 5 строк, got %d", lines)
 	}
 }
 
@@ -285,7 +285,7 @@ func TestSubject_Notify_Empty(t *testing.T) {
 	subject := &Subject{}
 	event := AuditEvent{TS: 1234567890}
 
-	// Should not panic with no observers
+	// Не должно вызвать панику без наблюдателей
 	subject.Notify(event)
 }
 
@@ -305,7 +305,7 @@ func TestSubject_ConcurrentAttach(t *testing.T) {
 
 	subject.mu.Lock()
 	if len(subject.observers) != 100 {
-		t.Errorf("expected 100 observers, got %d", len(subject.observers))
+		t.Errorf("expected 100 наблюдателей, got %d", len(subject.observers))
 	}
 	subject.mu.Unlock()
 }
@@ -321,7 +321,7 @@ func TestHTTPObserver_EmptyURL(t *testing.T) {
 func TestFileObserver_Concurrent(t *testing.T) {
 	tmpFile, err := os.CreateTemp("", "audit_concurrent_*.log")
 	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
+		t.Fatalf("не удалось создать временный файл: %v", err)
 	}
 	defer os.Remove(tmpFile.Name())
 
@@ -340,12 +340,12 @@ func TestFileObserver_Concurrent(t *testing.T) {
 
 	content, err := os.ReadFile(tmpFile.Name())
 	if err != nil {
-		t.Fatalf("failed to read file: %v", err)
+		t.Fatalf("не удалось прочитать файл: %v", err)
 	}
 
 	lines := strings.Count(string(content), "\n")
 	if lines != 50 {
-		t.Errorf("expected 50 lines, got %d", lines)
+		t.Errorf("expected 50 строк, got %d", lines)
 	}
 }
 
@@ -376,20 +376,20 @@ func TestHTTPObserver_Concurrent(t *testing.T) {
 
 	wg.Wait()
 
-	// Note: Some requests might fail due to rate limiting or connection issues
-	// so we just verify it doesn't panic
+	// Примечание: Некоторые запросы могут завершиться ошибкой из-за ограничения скорости или проблем с подключением
+	// поэтому мы просто проверяем, что не вызывается паника
 }
 
 func TestFileObserver_EmptyFilePath(t *testing.T) {
 	observer := NewFileObserver("")
 	event := AuditEvent{TS: 1234567890}
 
-	// Should not panic with empty path
+	// Не должно вызвать панику с пустым путем
 	observer.OnAuditEvent(event)
 }
 
 func TestSubject_RemoveObserver(t *testing.T) {
-	// This tests that Attach works and we can verify state
+	// Это проверяет, что Attach работает и можно проверить состояние
 	subject := &Subject{}
 
 	obs1 := &mockObserver{}
@@ -403,12 +403,12 @@ func TestSubject_RemoveObserver(t *testing.T) {
 	subject.mu.Unlock()
 
 	if initialCount != 2 {
-		t.Errorf("expected 2 observers initially, got %d", initialCount)
+		t.Errorf("expected 2 наблюдателя изначально, got %d", initialCount)
 	}
 }
 
 func TestHTTPObserver_CloseResponseBody(t *testing.T) {
-	// Verify that response body is closed even on error path
+	// Проверяем, что тело ответа закрыто даже при ошибке
 	observer := NewHTTPObserver("http://nonexistent-server")
 	event := AuditEvent{TS: 1234567890}
 
@@ -428,13 +428,13 @@ func TestAuditEvent_TimestampVariations(t *testing.T) {
 		event := AuditEvent{TS: ts}
 		data, err := json.Marshal(event)
 		if err != nil {
-			t.Errorf("failed to marshal event with TS %d: %v", ts, err)
+			t.Errorf("не удалось сериализовать событие с TS %d: %v", ts, err)
 			continue
 		}
 
 		var parsed AuditEvent
 		if err := json.Unmarshal(data, &parsed); err != nil {
-			t.Errorf("failed to unmarshal event with TS %d: %v", ts, err)
+			t.Errorf("не удалось десериализовать событие с TS %d: %v", ts, err)
 			continue
 		}
 
@@ -460,12 +460,12 @@ func TestAuditEvent_MetricsVariations(t *testing.T) {
 			event := AuditEvent{Metrics: tt.metrics}
 			data, err := json.Marshal(event)
 			if err != nil {
-				t.Fatalf("failed to marshal: %v", err)
+				t.Fatalf("не удалось сериализовать: %v", err)
 			}
 
 			var parsed AuditEvent
 			if err := json.Unmarshal(data, &parsed); err != nil {
-				t.Fatalf("failed to unmarshal: %v", err)
+				t.Fatalf("не удалось десериализовать: %v", err)
 			}
 
 			if len(parsed.Metrics) != len(tt.metrics) {
@@ -478,7 +478,7 @@ func TestAuditEvent_MetricsVariations(t *testing.T) {
 func TestHTTPObserver_MalformedResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("this is not valid json at all!!!"))
+		w.Write([]byte("это вообще недопустимый json!!!"))
 	}))
 	defer server.Close()
 
@@ -489,9 +489,9 @@ func TestHTTPObserver_MalformedResponse(t *testing.T) {
 }
 
 func TestHTTPObserver_TimeoutResponse(t *testing.T) {
-	// Server that doesn't respond
+	// Сервер, который не отвечает
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Do nothing - timeout
+		// Ничего не делаем - тайм-аут
 	}))
 	defer server.Close()
 
@@ -504,26 +504,26 @@ func TestHTTPObserver_TimeoutResponse(t *testing.T) {
 func TestFileObserver_WriteAppendMode(t *testing.T) {
 	tmpFile, err := os.CreateTemp("", "audit_append_*.log")
 	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
+		t.Fatalf("не удалось создать временный файл: %v", err)
 	}
 	defer os.Remove(tmpFile.Name())
 
 	observer := NewFileObserver(tmpFile.Name())
 
-	// Write first event
+	// Записываем первое событие
 	observer.OnAuditEvent(AuditEvent{TS: 1})
 	content1, _ := os.ReadFile(tmpFile.Name())
 
-	// Write second event
+	// Записываем второе событие
 	observer.OnAuditEvent(AuditEvent{TS: 2})
 	content2, _ := os.ReadFile(tmpFile.Name())
 
-	// Verify append behavior
+	// Проверяем поведение добавления
 	if len(content2) <= len(content1) {
-		t.Error("expected file to grow after second write")
+		t.Error("expected файл должен вырасти после второго добавления")
 	}
 
 	if !bytes.Contains(content2, []byte("1")) || !bytes.Contains(content2, []byte("2")) {
-		t.Error("expected both events in file")
+		t.Error("ожидаем оба события в файле")
 	}
 }

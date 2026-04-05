@@ -48,7 +48,7 @@ func TestNewAgent(t *testing.T) {
 }
 
 func TestCompress(t *testing.T) {
-	// Use larger data that compresses well
+	// Используем большие данные, которые хорошо сжимаются
 	data := []byte(`{"test": "data", "numbers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], "nested": {"key": "value", "array": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]}}`)
 
 	compressed, err := compress(data)
@@ -57,11 +57,11 @@ func TestCompress(t *testing.T) {
 	}
 
 	if len(compressed) == 0 {
-		t.Error("compressed data should not be empty")
+		t.Error("сжатые данные не должны быть пустыми")
 	}
 
 	if len(compressed) >= len(data) {
-		t.Errorf("compressed data should be smaller than original for this test data (original: %d, compressed: %d)", len(data), len(compressed))
+		t.Errorf("сжатые данные должны быть меньше исходных для этого тестового набора данных (исходный: %d, сжатый: %d)", len(data), len(compressed))
 	}
 }
 
@@ -70,11 +70,11 @@ func TestCompress_EmptyData(t *testing.T) {
 
 	compressed, err := compress(data)
 	if err != nil {
-		t.Fatalf("compress failed: %v", err)
+		t.Fatalf("сжатие не удалось: %v", err)
 	}
 
 	if compressed == nil {
-		t.Error("compressed data should not be nil")
+		t.Error("сжатые данные не должны быть nil")
 	}
 }
 
@@ -91,7 +91,7 @@ func TestAgent_copyMetrics(t *testing.T) {
 	metrics := agent.copyMetrics()
 
 	if len(metrics) != 3 {
-		t.Errorf("expected 3 metrics, got %d", len(metrics))
+		t.Errorf("expected 3 метрики, got %d", len(metrics))
 	}
 
 	foundPollCount := false
@@ -121,7 +121,7 @@ func TestAgent_copyMetrics_Empty(t *testing.T) {
 	metrics := agent.copyMetrics()
 
 	if len(metrics) != 1 {
-		t.Errorf("expected 1 metric (pollCount), got %d", len(metrics))
+		t.Errorf("expected 1 метрика (pollCount), got %d", len(metrics))
 	}
 }
 
@@ -143,7 +143,7 @@ func TestAgent_copyMetrics_Concurrent(t *testing.T) {
 			defer wg.Done()
 			metrics := agent.copyMetrics()
 			if len(metrics) == 0 {
-				t.Error("metrics should not be empty")
+				t.Error("метрики не должны быть пустыми")
 			}
 		}()
 	}
@@ -157,13 +157,13 @@ func TestAgent_sendMetric_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var metrics []models.Metrics
 
-		// Handle gzip-encoded body
+		// Обработка gzip-закодированного тела
 		var body io.ReadCloser
 		if r.Header.Get("Content-Encoding") == "gzip" {
 			var err error
 			body, err = gzip.NewReader(r.Body)
 			if err != nil {
-				t.Errorf("failed to create gzip reader: %v", err)
+				t.Errorf("не удалось создать gzip reader: %v", err)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
@@ -193,7 +193,7 @@ func TestAgent_sendMetric_Success(t *testing.T) {
 	agent.sendMetric(testMetrics)
 
 	if len(receivedMetrics) != 2 {
-		t.Errorf("expected 2 metrics received, got %d", len(receivedMetrics))
+		t.Errorf("expected 2 метрики получено, got %d", len(receivedMetrics))
 	}
 }
 
@@ -224,9 +224,9 @@ func TestAgent_sendMetric_RetrySuccess(t *testing.T) {
 }
 
 func TestAgent_sendMetric_HTTPError(t *testing.T) {
-	// Use a fast server that closes connection immediately without retries
+	// Используем быстрый сервер, который закрывает соединение немедленно без повторных попыток
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Just close without writing response
+		// Просто закрываем, не записывая ответ
 		hijacker, ok := w.(http.Hijacker)
 		if ok {
 			conn, _, _ := hijacker.Hijack()
@@ -237,11 +237,11 @@ func TestAgent_sendMetric_HTTPError(t *testing.T) {
 
 	cfg := config.AgentConfig{
 		Host:         server.URL[len("http://"):],
-		PollInterval: 1, // Minimal intervals for fast tests
+		PollInterval: 1, // Минимальные интервалы для быстрого тестирования
 	}
 	agent := NewAgent(cfg)
-	agent.maxRetries = 1                      // Only 1 retry instead of 3
-	agent.retryDelays = []time.Duration{0}    // No delay between retries
+	agent.maxRetries = 1                      // Только 1 повторная попытка вместо 3
+	agent.retryDelays = []time.Duration{0}    // Нет задержки между попытками
 
 	testMetrics := []models.Metrics{{ID: "test", MType: models.Gauge, Value: floatPtr(1.0)}}
 
@@ -267,7 +267,7 @@ func TestAgent_pollMetrics(t *testing.T) {
 	agent.mu.Unlock()
 
 	if !hasMetrics {
-		t.Error("expected metrics to be collected")
+		t.Error("ожидаемые метрики должны быть собраны")
 	}
 }
 

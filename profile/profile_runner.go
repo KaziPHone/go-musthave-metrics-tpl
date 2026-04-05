@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting memory profiling...")
+	fmt.Println("Запуск профилирования памяти...")
 
 	// Включаем профилирование памяти
 	runtime.GC() // Сборка мусора перед измерением
@@ -30,30 +30,30 @@ func main() {
 	// Создаем файл для сохранения профиля
 	profileFile, err := os.Create("profiles/base.pprof")
 	if err != nil {
-		fmt.Printf("Error creating profile file: %v\n", err)
+		fmt.Printf("Ошибка при создании файла профиля: %v\n", err)
 		os.Exit(1)
 	}
 	defer profileFile.Close()
 
 	// Запускаем профилирование памяти
 	if err := pprof.WriteHeapProfile(profileFile); err != nil {
-		fmt.Printf("Error writing heap profile: %v\n", err)
+		fmt.Printf("Ошибка при записи профиля кучи: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("Base heap profile saved to profiles/base.pprof")
+	fmt.Println("Профиль кучи сохранен в profiles/base.pprof")
 
 	// Запускаем тесты для нагружения системы
 	runLoadTests()
 
-	fmt.Println("Load tests completed. Run: go test -bench=. -memprofile=profiles/result.memprof -benchmem")
+	fmt.Println("Тесты на нагрузку завершены. Запустите: go test -bench=. -memprofile=profiles/result.memprof -benchmem")
 }
 
 func runLoadTests() {
-	fmt.Println("Running load tests...")
+	fmt.Println("Запуск тестов на нагрузку...")
 
 	// Тест 1: Storage - множественные обновления
-	fmt.Println("Test 1: Storage.UpdateMetric (1000 iterations)")
+	fmt.Println("Тест 1: Storage.UpdateMetric (1000 итераций)")
 	cfg := config.ServerConfig{}
 	storage := storage.NewMemStorage(cfg)
 
@@ -66,7 +66,7 @@ func runLoadTests() {
 	}
 
 	// Тест 2: Handlers - множественные запросы
-	fmt.Println("Test 2: Handler.UpdateValueHandler (500 iterations)")
+	fmt.Println("Тест 2: Handler.UpdateValueHandler (500 итераций)")
 	h := &handlers.Handler{
 		Storage:      storage,
 		AuditSubject: nil,
@@ -81,7 +81,7 @@ func runLoadTests() {
 	}
 
 	// Тест 3: Handlers - пакетное обновление
-	fmt.Println("Test 3: Handler.UpdatesHandler (100 iterations with 10 metrics each)")
+	fmt.Println("Тест 3: Handler.UpdatesHandler (100 итераций по 10 метрик)")
 	metrics := make([]models.Metrics, 10)
 	for i := 0; i < 10; i++ {
 		metrics[i] = models.Metrics{
@@ -99,8 +99,8 @@ func runLoadTests() {
 		h.UpdatesHandler(w, req)
 	}
 
-	// Тест 4: SHA256 hashing (часто вызывается в middleware)
-	fmt.Println("Test 4: SHA256 hashing (10000 iterations)")
+	// Тест 4: SHA256 хэширование (часто вызывается в middleware)
+	fmt.Println("Тест 4: SHA256 хэширование (10000 итераций)")
 	data := make([]byte, 1024)
 	for i := range data {
 		data[i] = byte(i % 256)
@@ -110,15 +110,15 @@ func runLoadTests() {
 		_ = helpers.CalcSHA256Hash(data)
 	}
 
-	// Тест 5: Gzip compression/decompression
-	fmt.Println("Test 5: Gzip compression/decompression (500 iterations)")
+	// Тест 5: Gzip сжатие/декомпрессия
+	fmt.Println("Тест 5: Gzip сжатие/декомпрессия (500 итераций)")
 	for i := 0; i < 500; i++ {
 		compressed, _ := compress(data)
 		_, _ = decompress(compressed)
 	}
 
 	// Тест 6: Audit Notify - просто цикл с созданием события
-	fmt.Println("Test 6: Audit notify simulation (500 iterations)")
+	fmt.Println("Тест 6: Симуляция уведомления аудита (500 итераций)")
 	// Имитация Notify без реальных наблюдателей
 	for i := 0; i < 500; i++ {
 		_ = audit.AuditEvent{
@@ -128,8 +128,8 @@ func runLoadTests() {
 		}
 	}
 
-	// Тест 7: Middleware chain
-	fmt.Println("Test 7: Middleware chain (100 iterations)")
+	// Тест 7: Цепочка middleware
+	fmt.Println("Тест 7: Цепочка middleware (100 итераций)")
 
 	// Подготовка данных для SHA middleware
 	originalBody := make([]byte, 1024)
@@ -156,20 +156,20 @@ func runLoadTests() {
 		shaHandler.ServeHTTP(w, req)
 	}
 
-	fmt.Println("All load tests completed!")
+	fmt.Println("Все тесты на нагрузку завершены!")
 }
 
 func compress(data []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	gw := gzip.NewWriter(&buf)
 	if _, err := gw.Write(data); err != nil {
-		return nil, fmt.Errorf("error writing to gzip: %v", err)
+		return nil, fmt.Errorf("ошибка записи в gzip: %v", err)
 	}
 	if err := gw.Flush(); err != nil {
-		return nil, fmt.Errorf("the flush gzip error: %v", err)
+		return nil, fmt.Errorf("ошибка сброса gzip: %v", err)
 	}
 	if err := gw.Close(); err != nil {
-		return nil, fmt.Errorf("gzip closing error: %v", err)
+		return nil, fmt.Errorf("ошибка закрытия gzip: %v", err)
 	}
 	return buf.Bytes(), nil
 }

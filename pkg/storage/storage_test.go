@@ -30,10 +30,10 @@ func TestNewMemStorage(t *testing.T) {
 	assert.NotNil(t, storage.ListMetrics())
 }
 
-func TestNewMemStorage_FileStorage(t *testing.T) {
+func TestNewMemStorage_WithFileStorage(t *testing.T) {
 	cfg := config.ServerConfig{
 		FileStorage:   "/tmp/test_metrics.json",
-		StoreInterval: 0, // Disable ticker
+		StoreInterval: 0, // Отключаем таймер
 		Restore:       false,
 	}
 	storage := NewMemStorage(cfg)
@@ -42,8 +42,8 @@ func TestNewMemStorage_FileStorage(t *testing.T) {
 	assert.NotNil(t, storage.ListMetrics())
 }
 
-func TestNewMemStorage_FileStorageWithRestore(t *testing.T) {
-	// Create a test file with some data
+func TestNewMemStorage_WithFileStorageWithRestore(t *testing.T) {
+	// Создаем тестовый файл с некоторыми данными
 	tmpFile := "/tmp/test_restore.json"
 	testData := `[
 		{"id": "test_metric", "type": "gauge", "value": 100.5},
@@ -56,16 +56,16 @@ func TestNewMemStorage_FileStorageWithRestore(t *testing.T) {
 	cfg := config.ServerConfig{
 		FileStorage:   tmpFile,
 		Restore:       true,
-		StoreInterval: 0, // Disable ticker
+		StoreInterval: 0, // Отключаем таймер
 	}
 	storage := NewMemStorage(cfg)
 
 	assert.NotNil(t, storage)
-	// After restore, the metrics should be loaded
+	// После восстановления метрики должны быть загружены
 }
 
-func TestNewMemStorage_DBStorage(t *testing.T) {
-	// Test with a valid DSN (will fail to connect but should not panic)
+func TestNewMemStorage_WithDBStorage(t *testing.T) {
+	// Тестируем с валидным DSN (подключение не удастся, но паники не будет)
 	cfg := config.ServerConfig{
 		DataBaseDsn: "postgres://user:pass@localhost:5432/testdb",
 		MigratePath: "./migrations",
@@ -73,10 +73,10 @@ func TestNewMemStorage_DBStorage(t *testing.T) {
 	storage := NewMemStorage(cfg)
 
 	assert.NotNil(t, storage)
-	// Database won't be connected since we're not running a real DB
+	// База данных не будет подключена, так как мы не запускаем реальную БД
 }
 
-func TestNewMemStorage_InvalidMigratePath(t *testing.T) {
+func TestNewMemStorage_WithInvalidMigratePath(t *testing.T) {
 	cfg := config.ServerConfig{
 		DataBaseDsn: "postgres://user:pass@localhost:5432/testdb",
 		MigratePath: "/nonexistent/path",
@@ -129,9 +129,9 @@ func TestMStorage_UpdateMetric_OverwriteGauge(t *testing.T) {
 func TestMStorage_UpdateMetric_TypeSwitch(t *testing.T) {
 	storage := NewMemStorage(config.ServerConfig{})
 
-	// First with float64
+	// Сначала с float64
 	storage.UpdateMetric("metric1", "gauge", float64(100.0))
-	// Then with *float64
+	// Затем с *float64
 	storage.UpdateMetric("metric2", "gauge", &[]float64{200.0}[0])
 
 	metrics := storage.ListMetrics()
@@ -210,10 +210,10 @@ func TestMStorage_UpdatesMetrics_Empty(t *testing.T) {
 func TestMStorage_UpdatesMetrics_InvalidType(t *testing.T) {
 	storage := NewMemStorage(config.ServerConfig{})
 
-	// Test with empty slice
+	// Тестируем с пустым срезом
 	storage.UpdatesMetrics([]models.Metrics{})
 
-	// Should not panic
+	// Не должно вызвать панику
 	assert.NotNil(t, storage.ListMetrics())
 }
 
@@ -224,18 +224,18 @@ func TestMStorage_StorageGracefulStop(t *testing.T) {
 		Addr: ":8080",
 	}
 
-	// This starts a goroutine, so we need to give it a moment
+	// Это запускает горутину, поэтому даем немного времени
 	done := make(chan struct{})
 	go func() {
 		storage.StorageGracefulStop(server)
 		close(done)
 	}()
 
-	// Wait a bit then send a signal
+	// Ждем немного, затем отправляем сигнал
 	time.Sleep(100 * time.Millisecond)
 
-	// We can't actually send a signal in this test environment
-	// Just verify the function doesn't panic
+	// В окружении теста мы не можем отправить реальный сигнал
+	// Просто проверяем, что функция не паникует
 }
 
 func TestMStorage_StorageGracefulStop_FileStorage(t *testing.T) {
@@ -318,14 +318,14 @@ func TestMStorage_IsConnectedDB(t *testing.T) {
 	cfg := config.ServerConfig{}
 	storage := NewMemStorage(cfg)
 
-	// Without a real DB, this should return false
+	// Без реальной БД должно вернуть false
 	connected := storage.IsConnectedDB()
 	assert.False(t, connected)
 }
 
 func TestMStorage_IsConnectedDB_WithDB(t *testing.T) {
-	// This would require a real database connection
-	// We just verify the method exists and returns bool
+	// Это потребует реального подключения к базе данных
+	// Мы просто проверяем, что метод существует и возвращает bool
 	cfg := config.ServerConfig{
 		DataBaseDsn: "postgres://user:pass@localhost:5432/test",
 	}
@@ -375,8 +375,8 @@ func TestMStorage_updateMetricMemory_Float64Counter(t *testing.T) {
 
 func TestMStorage_initStorageFile_NoFileStorage(t *testing.T) {
 	storage := NewMemStorage(config.ServerConfig{}).(*MStorage)
-	
-	// Should not panic
+
+	// Не должно вызвать панику
 	storage.initStorageFile()
 }
 
@@ -394,8 +394,8 @@ func TestMStorage_initStorageFile_WithFileStorage(t *testing.T) {
 
 func TestMStorage_storageFileTicker_NoInterval(t *testing.T) {
 	storage := NewMemStorage(config.ServerConfig{}).(*MStorage)
-	
-	// Should not panic
+
+	// Не должно вызвать панику
 	storage.storageFileTicker()
 }
 
@@ -404,13 +404,13 @@ func TestMStorage_storageFileTicker_WithInterval(t *testing.T) {
 		FileStorage: "/tmp/test_ticker.json",
 	}
 
-	// Storage init already starts the ticker in a goroutine (if StoreInterval > 0)
-	// Just verify it doesn't panic and runs
+	// Storage init уже запускает таймер в горутине (если StoreInterval > 0)
+	// Просто проверяем, что функция не паникует и работает
 	time.Sleep(1100 * time.Millisecond)
 
-	// Verify file was created/saved
+	// Проверяем, что файл был создан/сохранен
 	if _, err := os.Stat(cfg.FileStorage); err == nil {
-		// File exists, which means ticker ran and saved
+		// Файл существует, что означает, что таймер сработал и сохранил данные
 		os.Remove(cfg.FileStorage)
 	}
 }
@@ -421,7 +421,7 @@ func TestMStorage_saveStorageMetrics_DBActive(t *testing.T) {
 	}
 	storage := NewMemStorage(cfg).(*MStorage)
 
-	// Should return early when DB is active
+	// Должен вернуться early, когда БД активна
 	storage.saveStorageMetrics()
 }
 
@@ -434,28 +434,28 @@ func TestMStorage_saveStorageMetrics_NoDir(t *testing.T) {
 	}
 	storage := NewMemStorage(cfg).(*MStorage)
 
-	// Should create directory and save
+	// Должен создать директорию и сохранить
 	storage.saveStorageMetrics()
 }
 
 func TestMStorage_saveStorageMetrics_JSONError(t *testing.T) {
-	// This is hard to trigger without mocking
+	// Это трудно вызвать без моков
 	storage := NewMemStorage(config.ServerConfig{}).(*MStorage)
 
 	storage.saveStorageMetrics()
 }
 
 func TestNewMemStorage_ConcurrentAccess(t *testing.T) {
-	// Use memory storage (no ticker) for concurrent access test
+	// ИспользуемMemory storage (без таймера) для теста конкурентного доступа
 	cfg := config.ServerConfig{
 		FileStorage:   "",
-		StoreInterval: 0, // Disable ticker
+		StoreInterval: 0, // Отключаем таймер
 	}
 	storage := NewMemStorage(cfg)
 
 	var done = make(chan bool)
 
-	// Concurrent updates
+	// Конкурентные обновления
 	for i := 0; i < 10; i++ {
 		go func(i int) {
 			storage.UpdateMetric(fmt.Sprintf("metric_%d", i), "gauge", float64(i))
@@ -507,8 +507,8 @@ func TestMStorage_UpdateMetric_Concurrent(t *testing.T) {
 	wg.Wait()
 
 	metrics := storage.ListMetrics()
-	// With concurrent updates, any value is possible
-	// Just verify it's one of the expected values
+	// При конкурентных обновлениях любое значение возможно
+	// Просто проверяем, что оно одно из ожидаемых значений
 	assert.GreaterOrEqual(t, metrics["concurrent_metric"].Gauge, float64(0))
 	assert.LessOrEqual(t, metrics["concurrent_metric"].Gauge, float64(99))
 }
@@ -551,7 +551,7 @@ func TestMStorage_FileStorageWithRestore(t *testing.T) {
 	tmpFile := "/tmp/test_restore_data.json"
 	defer os.Remove(tmpFile)
 
-	// Create a file with initial data
+	// Создаем файл с начальными данными
 	initialData := `[
 		{"id": "existing_metric", "type": "gauge", "value": 999.9}
 	]`
@@ -576,25 +576,25 @@ func TestMStorage_StorageTypeDetection(t *testing.T) {
 		isFile bool
 	}{
 		{
-			name:   "DB only",
+			name:   "Только БД",
 			cfg:    config.ServerConfig{DataBaseDsn: "postgres://u:p@h:5432/d"},
 			isDB:   true,
 			isFile: false,
 		},
 		{
-			name:   "File only",
+			name:   "Только файл",
 			cfg:    config.ServerConfig{FileStorage: "/tmp/test.json"},
 			isDB:   false,
 			isFile: true,
 		},
 		{
-			name:   "Both (DB priority)",
+			name:   "Оба (БД имеет приоритет)",
 			cfg:    config.ServerConfig{DataBaseDsn: "postgres://u:p@h:5432/d", FileStorage: "/tmp/test.json"},
 			isDB:   true,
 			isFile: false,
 		},
 		{
-			name:   "Neither (memory)",
+			name:   "Ни того ни другого (память)",
 			cfg:    config.ServerConfig{},
 			isDB:   false,
 			isFile: false,
@@ -644,11 +644,11 @@ func TestMStorage_UpdateMetric_NilValue(t *testing.T) {
 func TestMStorage_UpdateMetric_InvalidMetricType(t *testing.T) {
 	storage := NewMemStorage(config.ServerConfig{})
 
-	// Unknown metric type
+	// Неизвестный тип метрики
 	storage.UpdateMetric("test", "unknown_type", 100.0)
 
 	metrics := storage.ListMetrics()
-	// Should still create the metric with the type
+	// Должен всё равно создать метрику с этим типом
 	assert.Contains(t, metrics, "test")
 }
 
@@ -712,11 +712,11 @@ func TestMStorage_StorageGracefulStop_Concurrent(t *testing.T) {
 func TestMStorage_updateMetricMemory_NilValue(t *testing.T) {
 	storage := NewMemStorage(config.ServerConfig{}).(*MStorage)
 
-	// Test with nil float64
+	// Тестируем с nil float64
 	err := storage.updateMetricMemory("test1", "gauge", (*float64)(nil))
 	assert.NoError(t, err)
 
-	// Test with nil int64 (should not happen in practice but let's test)
+	// Тестируем с nil int64 (в практике не должно происходить, но протестируем)
 	err = storage.updateMetricMemory("test2", "counter", (*int64)(nil))
 	assert.NoError(t, err)
 }

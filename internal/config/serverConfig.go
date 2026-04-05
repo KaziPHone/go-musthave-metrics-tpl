@@ -18,7 +18,7 @@ type ServerConfig struct {
 	AuditURL      string `env:"AUDIT_URL"`
 }
 
-// NewConfigServer creates a new server config, reading from flags and environment
+// NewConfigServer создает новый конфиг сервера, считывая из флагов и окружения
 func NewConfigServer() (*ServerConfig, error) {
 	cfg := &ServerConfig{}
 	fs := flag.NewFlagSet("server-config", flag.ContinueOnError)
@@ -30,7 +30,7 @@ func NewConfigServer() (*ServerConfig, error) {
 	fs.StringVar(&cfg.DataBaseDsn, "d", "", "Строка подключения к базе данных")
 	fs.StringVar(&cfg.Key, "k", "", "Ключ")
 
-	// Parse with nil args - just set defaults
+	// Парсим с nil args - просто устанавливаем значения по умолчанию
 	if err := fs.Parse(nil); err != nil {
 		return nil, err
 	}

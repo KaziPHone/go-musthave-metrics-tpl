@@ -32,7 +32,7 @@ func TestHandler_GetMetricHandler(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		// TODO: Добавьте тестовые случаи.
 		{
 			name: "test",
 			fields: fields{
@@ -54,7 +54,7 @@ func TestHandler_GetMetricHandler(t *testing.T) {
 				Storage: tt.fields.Storage,
 			}
 			h.GetMetricHandler(respRec, req)
-			assert.Equal(t, respRec.Code, http.StatusOK, "expected status code to be 200")
+			assert.Equal(t, respRec.Code, http.StatusOK, "ожидаемый код состояния 200")
 		})
 	}
 }
