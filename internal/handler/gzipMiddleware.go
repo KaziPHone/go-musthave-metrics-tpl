@@ -47,7 +47,6 @@ func GzipRequestMiddleware(h http.Handler) http.Handler {
 			return
 		}
 
-
 		gzReader, err := gzip.NewReader(bytes.NewReader(originalBody))
 		if err != nil {
 			http.Error(w, "Ошибка обработки gzipped-запроса", http.StatusBadRequest)

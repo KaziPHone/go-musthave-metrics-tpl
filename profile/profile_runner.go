@@ -56,11 +56,11 @@ func runLoadTests() {
 	fmt.Println("Test 1: Storage.UpdateMetric (1000 iterations)")
 	cfg := config.ServerConfig{}
 	storage := storage.NewMemStorage(cfg)
-	
+
 	for i := 0; i < 1000; i++ {
 		storage.UpdateMetric(fmt.Sprintf("metric_%d", i), "gauge", float64(i))
 	}
-	
+
 	for i := 0; i < 1000; i++ {
 		storage.UpdateMetric(fmt.Sprintf("counter_%d", i), "counter", int64(i))
 	}
@@ -130,15 +130,15 @@ func runLoadTests() {
 
 	// Тест 7: Middleware chain
 	fmt.Println("Test 7: Middleware chain (100 iterations)")
-	
+
 	// Подготовка данных для SHA middleware
 	originalBody := make([]byte, 1024)
 	for i := range originalBody {
 		originalBody[i] = byte(i % 256)
 	}
-	
+
 	hash := helpers.CalcSHA256Hash(originalBody)
-	
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))

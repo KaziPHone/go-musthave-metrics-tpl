@@ -9,9 +9,9 @@ import (
 
 type shaRw struct {
 	http.ResponseWriter
-	buf *bytes.Buffer
-	statusCode   int
-	wroteHeader  bool
+	buf         *bytes.Buffer
+	statusCode  int
+	wroteHeader bool
 }
 
 func (s *shaRw) Write(p []byte) (int, error) {
@@ -54,11 +54,10 @@ func ShaMiddleware(key string) func(http.Handler) http.Handler {
 
 			var buf bytes.Buffer
 			crw := &shaRw{
-				ResponseWriter: w, 
-				buf: &buf,
+				ResponseWriter: w,
+				buf:            &buf,
 				statusCode:     http.StatusOK,
 				wroteHeader:    false,
-
 			}
 
 			// Выполняем обработчик, но он пишет в буфер, а не сразу в w
