@@ -27,8 +27,8 @@ func Example_agent() {
 	// Создаем конфигурацию агента
 	cfg := config.AgentConfig{
 		Host:           "localhost:8080",
-		PollInterval:   1,   // секунды
-		ReportInterval: 2,   // секунды
+		PollInterval:   1, // секунды
+		ReportInterval: 2, // секунды
 		RateLimit:      5,
 		Key:            "test_key",
 	}
@@ -325,8 +325,8 @@ func Example_gracefulShutdown() {
 func Example_multipleStorageModes() {
 	// Режим 1: Память (по умолчанию)
 	store1 := storage.NewMemStorage(config.ServerConfig{
-		FileStorage:   "",
-		DataBaseDsn:   "",
+		FileStorage: "",
+		DataBaseDsn: "",
 	})
 	val1 := 100.0
 	store1.UpdateMetric("test", "gauge", &val1)

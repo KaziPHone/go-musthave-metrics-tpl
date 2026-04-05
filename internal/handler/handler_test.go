@@ -780,7 +780,7 @@ func TestGzipWriter_Close(t *testing.T) {
 
 func TestShaRw_PreserveStatusCode(t *testing.T) {
 	srw := &shaRw{
-		statusCode:  http.StatusNotFound,
+		statusCode: http.StatusNotFound,
 	}
 
 	// statusCode должен быть сохранен

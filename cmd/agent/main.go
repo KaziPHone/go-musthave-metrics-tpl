@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/agent"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
@@ -10,10 +9,8 @@ import (
 
 func main() {
 	cfg, err := config.NewConfigAgent()
-
 	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	agentMetric := agent.NewAgent(*cfg)

@@ -25,9 +25,9 @@ var metricsBufferPool = sync.Pool{
 // GetClientIP получает IP-адрес клиента из HTTP-запроса.
 //
 // Приоритет проверки заголовков:
-//   1. X-Real-IP
-//   2. X-Forwarded-For (первый IP в списке)
-//   3. RemoteAddr
+//  1. X-Real-IP
+//  2. X-Forwarded-For (первый IP в списке)
+//  3. RemoteAddr
 //
 // Обрезает порт из RemoteAddr если присутствует.
 //
