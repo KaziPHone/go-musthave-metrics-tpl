@@ -195,7 +195,7 @@ func BenchmarkGzipDecompress(b *testing.B) {
 	for i := range data {
 		data[i] = byte(i % 256)
 	}
-	
+
 	compressed, _ := compress(data)
 
 	b.ResetTimer()

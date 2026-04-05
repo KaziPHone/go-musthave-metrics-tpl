@@ -25,7 +25,6 @@ func (h *Handler) ValueMetricHandler(w http.ResponseWriter, r *http.Request) {
 		MType: metric.MType,
 	}
 
-
 	if v, ok := h.Storage.GetMetric(metric.ID); !ok {
 		w.WriteHeader(http.StatusNotFound)
 		resp, err := json.MarshalIndent(mResponse, "", " ")

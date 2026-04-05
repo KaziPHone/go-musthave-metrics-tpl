@@ -48,15 +48,15 @@ func GetClientIP(r *http.Request) string {
 func GetMetrics(metrics []models.Metrics) []string {
 	buf := metricsBufferPool.Get().([]string)
 	buf = buf[:0] // Clear the buffer
-	
+
 	for _, v := range metrics {
 		buf = append(buf, v.ID)
 	}
-	
+
 	// Return a copy to avoid the caller modifying the pooled buffer
 	result := make([]string, len(buf))
 	copy(result, buf)
 	metricsBufferPool.Put(buf)
-	
+
 	return result
 }

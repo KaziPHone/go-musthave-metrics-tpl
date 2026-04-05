@@ -67,7 +67,7 @@ func (m *MStorage) isStorageBD() bool {
 
 // isStorageFile проверка на использование файла
 func (m *MStorage) isStorageFile() bool {
-	return m.useStorage == UseFileStorage 
+	return m.useStorage == UseFileStorage
 }
 
 // setStorage устанавливает тип хранилища
