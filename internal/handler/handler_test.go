@@ -779,11 +779,8 @@ func TestGzipWriter_Close(t *testing.T) {
 }
 
 func TestShaRw_PreserveStatusCode(t *testing.T) {
-	var buf bytes.Buffer
 	srw := &shaRw{
-		buf:         &buf,
 		statusCode:  http.StatusNotFound,
-		wroteHeader: true,
 	}
 
 	// statusCode should be preserved
