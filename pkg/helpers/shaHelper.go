@@ -5,16 +5,38 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"sync"
 )
 
+// hasherPool allows reusing a hasher instance to avoid allocations
+var hasherPool = sync.Pool{
+	New: func() interface{} {
+		return sha256.New()
+	},
+}
+
 func CalcSHA256HashBuffer(data bytes.Buffer) string {
-	hasher := sha256.New()
+	hasher := hasherPool.Get().(interface {
+		Reset()
+		io.Writer
+		Sum([]byte) []byte
+	})
+	defer hasherPool.Put(hasher)
+
+	hasher.Reset()
 	io.Copy(hasher, &data)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
 func CalcSHA256Hash(data []byte) string {
-	h := sha256.New()
+	h := hasherPool.Get().(interface {
+		Reset()
+		io.Writer
+		Sum([]byte) []byte
+	})
+	defer hasherPool.Put(h)
+
+	h.Reset()
 	h.Write(data)
 	return fmt.Sprintf("%x", h.Sum(nil))
 }

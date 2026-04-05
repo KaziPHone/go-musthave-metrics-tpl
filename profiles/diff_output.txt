@@ -1,0 +1,79 @@
+File: go-musthave-metrics-tpl.test
+Type: alloc_space
+Time: 2026-04-05 10:39:47 MSK
+Showing nodes accounting for -1605.56MB, 1.48% of 108613.92MB total
+Dropped 92 nodes (cum <= 543.07MB)
+      flat  flat%   sum%        cum   cum%
+-1920.26MB  1.77%  1.77% -1920.26MB  1.77%  compress/flate.(*dictDecoder).init (inline)
+ 1062.72MB  0.98%  0.79%  1067.22MB  0.98%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers.GetMetrics
+  598.49MB  0.55%  0.24%   724.86MB  0.67%  compress/flate.NewWriter (inline)
+ -430.17MB   0.4%  0.63% -2350.43MB  2.16%  compress/flate.NewReader
+ -409.62MB  0.38%  1.01%  -409.62MB  0.38%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage.(*MStorage).updateMetricMemory
+ -406.55MB  0.37%  1.39%  -406.55MB  0.37%  crypto/internal/fips140/sha256.New (inline)
+ -154.65MB  0.14%  1.53%  -154.65MB  0.14%  io.ReadAll
+   99.92MB 0.092%  1.44%    99.92MB 0.092%  compress/flate.(*compressor).initDeflate (inline)
+   97.39MB  0.09%  1.35%    97.39MB  0.09%  bufio.NewReaderSize (inline)
+  -70.05MB 0.064%  1.41% -2420.48MB  2.23%  compress/gzip.NewReader (partial-inline)
+  -53.50MB 0.049%  1.46%      -52MB 0.048%  fmt.Sprintf
+  -46.51MB 0.043%  1.50%   -46.51MB 0.043%  encoding/json.NewDecoder (inline)
+      20MB 0.018%  1.48%       20MB 0.018%  net/url.parse
+     -20MB 0.018%  1.50%      -20MB 0.018%  strings.genSplit
+  -19.01MB 0.017%  1.52%   -19.01MB 0.017%  net/http.(*Request).WithContext (partial-inline)
+   14.01MB 0.013%  1.51%    14.01MB 0.013%  compress/flate.newHuffmanEncoder (inline)
+     -14MB 0.013%  1.52%  -256.29MB  0.24%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkStorage_UpdateMetric_Counter
+   13.50MB 0.012%  1.51%   -25.97MB 0.024%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkShaMiddleware.BenchmarkShaMiddleware.ShaMiddleware.func2.func3
+     -13MB 0.012%  1.52%   -13.03MB 0.012%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkStorage_GetMetric
+   12.51MB 0.012%  1.51%    26.52MB 0.024%  compress/flate.newHuffmanBitWriter (inline)
+   12.50MB 0.012%  1.50%    11.50MB 0.011%  net/textproto.MIMEHeader.Set (inline)
+  -12.50MB 0.012%  1.51%      -19MB 0.017%  encoding/json.(*decodeState).object
+  -11.50MB 0.011%  1.52%  -201.80MB  0.19%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkStorage_UpdateMetric
+   10.83MB  0.01%  1.51%    10.83MB  0.01%  bytes.growSlice
+     -10MB 0.0092%  1.52%      -15MB 0.014%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers.CalcSHA256Hash
+      10MB 0.0092%  1.51%       10MB 0.0092%  io.NopCloser (inline)
+   -9.50MB 0.0087%  1.52%   -11.65MB 0.011%  github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler.(*Handler).ListMetricsHandler
+    8.51MB 0.0078%  1.51%     8.51MB 0.0078%  sync.(*Pool).pinSlow
+    8.50MB 0.0078%  1.50%    19.33MB 0.018%  bytes.(*Buffer).grow
+    8.50MB 0.0078%  1.49%     8.50MB 0.0078%  bytes.NewReader (inline)
+       7MB 0.0064%  1.49%   -22.50MB 0.021%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkHandler_UpdateValueHandler_Gauge
+       7MB 0.0064%  1.48%  -384.55MB  0.35%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers.CalcSHA256HashBuffer
+       4MB 0.0037%  1.48%   178.67MB  0.16%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkShaMiddleware
+    3.50MB 0.0032%  1.47%    76.38MB  0.07%  net/http/httptest.NewRequestWithContext
+   -2.50MB 0.0023%  1.48% -2678.48MB  2.47%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGzipRequestMiddleware.GzipRequestMiddleware.func2
+      -1MB 0.00092%  1.48%   726.27MB  0.67%  github.com/KaziPHone/go-musthave-metrics-tpl.compress
+   -0.64MB 0.00058%  1.48%   126.37MB  0.12%  compress/flate.(*compressor).init
+    0.50MB 0.00046%  1.48%   -67.51MB 0.062%  github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler.(*Handler).singleMetric
+         0     0%  1.48%    97.39MB  0.09%  bufio.NewReader (inline)
+         0     0%  1.48%    19.33MB 0.018%  bytes.(*Buffer).Write
+         0     0%  1.48% -2350.43MB  2.16%  compress/gzip.(*Reader).Reset
+         0     0%  1.48% -2350.43MB  2.16%  compress/gzip.(*Reader).readHeader
+         0     0%  1.48%   723.86MB  0.67%  compress/gzip.(*Writer).Write
+         0     0%  1.48%  -406.55MB  0.37%  crypto/sha256.New (inline)
+         0     0%  1.48%   -24.99MB 0.023%  encoding/json.(*Decoder).Decode
+         0     0%  1.48%   -23.50MB 0.022%  encoding/json.(*decodeState).unmarshal
+         0     0%  1.48%   -23.50MB 0.022%  encoding/json.(*decodeState).value
+         0     0%  1.48%   -23.50MB 0.022%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkCalcSHA256Hash
+         0     0%  1.48%  -331.54MB  0.31%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkCalcSHA256HashBuffer
+         0     0%  1.48%   219.19MB   0.2%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGetClientIP
+         0     0%  1.48%  1118.23MB  1.03%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGetMetrics
+         0     0%  1.48%   725.20MB  0.67%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGzipCompress
+         0     0%  1.48%    80.91MB 0.074%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGzipDecompress
+         0     0%  1.48% -2988.64MB  2.75%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkGzipRequestMiddleware
+         0     0%  1.48%   -11.65MB 0.011%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkHandler_ListMetricsHandler
+         0     0%  1.48%   -63.77MB 0.059%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkHandler_UpdateHandler
+         0     0%  1.48%   -51.30MB 0.047%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkHandler_UpdatesHandler
+         0     0%  1.48%     9.50MB 0.0087%  github.com/KaziPHone/go-musthave-metrics-tpl.BenchmarkShaMiddleware.func1
+         0     0%  1.48%    79.84MB 0.074%  github.com/KaziPHone/go-musthave-metrics-tpl.decompress
+         0     0%  1.48%   -71.27MB 0.066%  github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler.(*Handler).UpdateHandler
+         0     0%  1.48%   -54.80MB  0.05%  github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler.(*Handler).UpdatesHandler
+         0     0%  1.48%     9.50MB 0.0087%  github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler.(*shaRw).Write
+         0     0%  1.48%      -19MB 0.017%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers.GetClientIP
+         0     0%  1.48%     8.50MB 0.0078%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers.IsBadShaRequest
+         0     0%  1.48%  -409.62MB  0.38%  github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage.(*MStorage).UpdateMetric
+         0     0%  1.48% -2704.45MB  2.49%  net/http.HandlerFunc.ServeHTTP (partial-inline)
+         0     0%  1.48%    11.50MB 0.011%  net/http.Header.Set (partial-inline)
+         0     0%  1.48%    76.38MB  0.07%  net/http/httptest.NewRequest (inline)
+         0     0%  1.48%       20MB 0.018%  net/url.ParseRequestURI
+         0     0%  1.48%      -20MB 0.018%  strings.Split (inline)
+         0     0%  1.48%     8.51MB 0.0078%  sync.(*Pool).pin
+         0     0%  1.48% -1642.33MB  1.51%  testing.(*B).launch
+         0     0%  1.48% -1641.82MB  1.51%  testing.(*B).runN
