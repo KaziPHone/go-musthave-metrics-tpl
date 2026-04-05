@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewConfig_NormalCase(t *testing.T) {
-	os.Setenv("ADDRESS", "localhost:8081")
+func TestNewConfigAgent_NormalCase(t *testing.T) {
+	os.Setenv("AGENT_HOST", "localhost:8081")
 	os.Setenv("REPORT_INTERVAL", "15")
 	os.Setenv("POLL_INTERVAL", "5")
 	os.Setenv("RATE_LIMIT", "1")
@@ -31,7 +31,8 @@ func TestNewConfig_NormalCase(t *testing.T) {
 
 // Вспомогательная функция для сброса переменных окружения
 func resetEnvironmentVars() {
-	os.Unsetenv("ADDRESS")
+	os.Unsetenv("AGENT_HOST")
 	os.Unsetenv("REPORT_INTERVAL")
 	os.Unsetenv("POLL_INTERVAL")
+	os.Unsetenv("RATE_LIMIT")
 }
