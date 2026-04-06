@@ -3,12 +3,13 @@ package main
 import (
 	"net/http"
 
+	"crypto/rsa"
+
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/audit"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/buildinfo"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 	handlers "github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler"
 	cryptopkg "github.com/KaziPHone/go-musthave-metrics-tpl/pkg/crypto"
-	"crypto/rsa"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
@@ -85,11 +86,12 @@ func main() {
 		Handler: router,
 	}
 
+	// Устанавливаем graceful shutdown для хранилища (оно само вызовет server.Shutdown при сигнале)
 	h.Storage.StorageGracefulStop(server)
 
 	log.Printf("Starting server on: %s...", cfg.Host)
-	err = http.ListenAndServe(cfg.Host, router)
-	if err != nil {
-		log.Err(err)
+	// Используем server.ListenAndServe чтобы Shutdown повлиял на этот экземпляр
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Err(err).Msg("server error")
 	}
 }
