@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/audit"
+	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/buildinfo"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 	handlers "github.com/KaziPHone/go-musthave-metrics-tpl/internal/handler"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/storage"
@@ -12,6 +13,10 @@ import (
 )
 
 func main() {
+
+	log.Printf("Build version: %s", buildinfo.GetVersion())
+	log.Printf("Build date: %s", buildinfo.GetDate())
+	log.Printf("Build commit: %s", buildinfo.GetCommit())
 
 	cfg, err := config.NewConfigServer()
 	if err != nil {
