@@ -51,19 +51,19 @@ func (d *dataBase) initDataBase() {
 	// Открываем базовое соединение с несколькими попытками
 	db, err := d.openDBWithRetry()
 	if err != nil {
-		log.Printf("Unable to establish a connection with the database after retries: %v\n", err)
+		log.Printf("Не удалось установить соединение с базой данных после повторных попыток: %v\n", err)
 		return
 	}
 
 	err = db.Ping()
 	if err != nil {
-		log.Print("Database not connected...")
+		log.Print("База данных не подключена...")
 		return
 	}
 
 	d.isConnected = true
 	d.db = db
-	log.Print("Database connected")
+	log.Print("База данных подключена")
 
 	d.migrateDB()
 }
@@ -79,12 +79,12 @@ func (d *dataBase) openDBWithRetry() (*sql.DB, error) {
 		}
 
 		if !d.retryableError(err) {
-			return nil, fmt.Errorf("non-retryable error occurred during DB initialization: %w", err)
+			return nil, fmt.Errorf("произошла ошибка, не подлежащая повтору во время инициализации БД: %w", err)
 		}
 
 		if len(d.retryInterval) > i {
 			waitTime := d.retryInterval[i]
-			log.Printf("Initial connection attempt failed, retrying in %v...\n", waitTime)
+			log.Printf("Попытка первоначального подключения не удалась, повторная попытка через %v...\n", waitTime)
 			time.Sleep(waitTime)
 		} else {
 			break
@@ -154,7 +154,7 @@ func (d *dataBase) insertMetric(metricName, typeMetric string, val interface{}) 
 	_, err := d.executeWithRetry(context.Background(), query,
 		metricName, typeMetric, value, delta)
 	if err != nil {
-		log.Printf("insert/update failed: %v\n", err)
+		log.Printf("insert/update не удался: %v\n", err)
 	}
 
 }
@@ -266,13 +266,13 @@ func (d *dataBase) executeWithRetry(ctx context.Context, query string, args ...i
 		}
 
 		if !d.retryableError(err) {
-			return nil, fmt.Errorf("non-retryable error occurred: %w", err)
+			return nil, fmt.Errorf("произошла ошибка, не подлежащая повтору: %w", err)
 		}
 
 		// Проверяем наличие оставшегося периода ожиданий
 		if len(d.retryInterval) > i {
 			waitTime := d.retryInterval[i]
-			log.Printf("Connection exception detected, retrying in %v...", waitTime)
+			log.Printf("Обнаружено исключение соединения, повторная попытка через %v...", waitTime)
 			time.Sleep(waitTime)
 		} else {
 			break

@@ -1,4 +1,8 @@
-// agent/agent.go
+// Package agent предоставляет клиент для сбора и отправки метрик на сервер.
+//
+// Agent собирает системные (CPU, память) и runtime-метрики (GC, heap) и
+// отправляет их на сервер по настраиваемым интервалам с поддержкой
+// сжатия и повторных попыток.
 package agent
 
 import (
@@ -20,6 +24,12 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
+// Agent — основной клиент агента, собирающий метрики.
+//
+// Agent собирает системные метрики (TotalMemory, FreeMemory, CPUUtilization1)
+// и runtime-метрики (Alloc, HeapAlloc, NumGC и другие), а также счетчик
+// PollCount. Метрики агрегируются в памяти и отправляются пакетами по
+// настраиваемому интервалу через горутины.
 type Agent struct {
 	pollInterval   int
 	reportInterval int
@@ -34,6 +44,12 @@ type Agent struct {
 	rateLimit      int
 }
 
+// NewAgent создает новый экземпляр Agent с заданной конфигурацией.
+//
+// Параметры:
+//   - cfg: конфигурация агента (см. config.AgentConfig)
+//
+// Возвращает указатель на инициализированный Agent.
 func NewAgent(cfg config.AgentConfig) *Agent {
 	return &Agent{
 		pollInterval:   cfg.PollInterval,
@@ -50,6 +66,23 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 	}
 }
 
+// compress сжимает данные методом gzip.
+//
+// Параметры:
+//   - data: исходные данные для сжатия
+//
+// Возвращает:
+//   - []byte: сжатые данные
+//   - error: ошибка при сжатии или nil
+//
+// Пример:
+//  
+//	data := []byte("Hello, World!")
+//	compressed, err := compress(data)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//
 func compress(data []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	gw := gzip.NewWriter(&buf)
@@ -65,7 +98,14 @@ func compress(data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// sendMetric отправляет пакет метрик с retry-логикой
+// sendMetric отправляет пакет метрик на сервер с логикой повторных попыток.
+//
+// Метод автоматически повторяет отправку при ошибках с экспоненциальной
+// задержкой до достижения maxRetries. Использует gzip-сжатие и SHA256
+// хэш при наличии ключа.
+//
+// Параметры:
+//   - metrics: срез метрик для отправки (см. models.Metrics)
 func (a *Agent) sendMetric(metrics []models.Metrics) {
 	for attempt := 0; ; attempt++ {
 		out, err := json.Marshal(metrics)
@@ -117,6 +157,11 @@ func (a *Agent) sendMetric(metrics []models.Metrics) {
 	}
 }
 
+// worker обрабатывает отправку метрик из канала jobs.
+//
+// Параметры:
+//   - jobs: канал с пакетами метрик для отправки
+//   - wg: WaitGroup для синхронизации завершения работы
 func (a *Agent) worker(jobs <-chan []models.Metrics, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for metrics := range jobs {
@@ -124,7 +169,13 @@ func (a *Agent) worker(jobs <-chan []models.Metrics, wg *sync.WaitGroup) {
 	}
 }
 
-// collectSystemMetrics собирает метрики без блокировки
+// collectSystemMetrics собирает системные метрики (CPU, память).
+//
+// Собирает следующие метрики:
+//   - TotalMemory:total объем оперативной памяти
+//   - FreeMemory:свободная оперативная память
+//   - CPUUtilization1:использование CPU в процентах
+//   - CPUPrevTotal, CPUPrevIdle:промежуточные значения для расчета CPU
 func (a *Agent) collectSystemMetrics() {
 	v, _ := mem.VirtualMemory()
 	a.mu.Lock()
@@ -155,6 +206,15 @@ func (a *Agent) collectSystemMetrics() {
 	a.mu.Unlock()
 }
 
+// collectRuntimeMetrics собирает runtime-метрики Go (GC, heap, allocations).
+//
+// Собирает следующие метрики:
+//   - Alloc, HeapAlloc, HeapIdle, HeapInuse, HeapObjects, HeapSys
+//   - GCCPUFraction, GCSys, NextGC, NumGC, NumForcedGC
+//   - PauseTotalNs, StackInuse, StackSys, Sys, TotalAlloc, Frees
+//   - LastGC, Lookups, MCacheInuse, MCacheSys, MSpanInuse, MSpanSys
+//   - RandomValue:рандомное значение для тестов
+//   - PollCount:количество опросов метрик
 func (a *Agent) collectRuntimeMetrics() {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
@@ -192,6 +252,12 @@ func (a *Agent) collectRuntimeMetrics() {
 	a.mu.Unlock()
 }
 
+// pollMetrics опрашивает систему и собирает метрики с заданным интервалом.
+//
+// Параметры:
+//   - stopCh: канал для остановки работы горутины
+//
+// Метод работает в цикле, собирая метрики каждые pollInterval секунд.
 func (a *Agent) pollMetrics(stopCh <-chan struct{}) {
 	ticker := time.NewTicker(time.Duration(a.pollInterval) * time.Second)
 	defer ticker.Stop()
@@ -207,6 +273,13 @@ func (a *Agent) pollMetrics(stopCh <-chan struct{}) {
 	}
 }
 
+// reportMetrics отправляет собранные метрики на сервер с заданным интервалом.
+//
+// Параметры:
+//   - stopCh: канал для остановки работы горутины
+//
+// Метод работает в цикле, отправляя метрики каждые reportInterval секунд.
+// Использует пул воркеров для параллельной отправки.
 func (a *Agent) reportMetrics(stopCh <-chan struct{}) {
 	jobs := make(chan []models.Metrics, a.rateLimit*2)
 	var wg sync.WaitGroup
@@ -235,6 +308,13 @@ func (a *Agent) reportMetrics(stopCh <-chan struct{}) {
 	}
 }
 
+// copyMetrics создает копию текущих метрик для отправки.
+//
+// Возвращает:
+//   - []models.Metrics: срез копий всех собранных метрик
+//
+// Метод безопасен для конкурентного вызова и возвращает полную копию
+// всех метрик в формате, пригодном для JSON-сериализации.
 func (a *Agent) copyMetrics() []models.Metrics {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -259,6 +339,16 @@ func (a *Agent) copyMetrics() []models.Metrics {
 	return result
 }
 
+// Start запускает агента, создавая две горутины для сбора и отправки метрик.
+//
+// Параметры:
+//   - stopCh: канал для корректной остановки агента
+//
+// Метод запускает:
+//   1. pollMetrics — горутина сбора метрик
+//   2. reportMetrics — горутина отправки метрик
+//
+// Обе горутины работают до получения сигнала из stopCh.
 func (a *Agent) Start(stopCh <-chan struct{}) {
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -274,4 +364,29 @@ func (a *Agent) Start(stopCh <-chan struct{}) {
 	}()
 
 	wg.Wait()
+}
+
+// GetAgentStats возвращает статистику агента для тестов.
+//
+// Возвращает:
+//   - int32: текущее значение pollCount
+func (a *Agent) GetAgentStats() int32 {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.pollCount
+}
+
+// GetMetricsMap возвращает копию карты метрик для тестов.
+//
+// Возвращает:
+//   - map[string]float64: копия текущих метрик
+func (a *Agent) GetMetricsMap() map[string]float64 {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	
+	result := make(map[string]float64, len(a.metrics))
+	for k, v := range a.metrics {
+		result[k] = v
+	}
+	return result
 }

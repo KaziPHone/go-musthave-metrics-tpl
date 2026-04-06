@@ -6,9 +6,11 @@ import (
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 )
 
-// updateMetricMemory обновление 1й метрики (внутренняя функция, без блокировки)
-// Предполагает, что value уже проверен на nil
+// updateMetricMemory обновление 1й метрики (внутренняя функция, с блокировкой)
 func (m *MStorage) updateMetricMemory(metricName, typeMetric string, value interface{}) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	// Используем value directly without nested pointer checks where possible
 	if _, ok := m.MetricTypes[metricName]; !ok {
 		m.MetricTypes[metricName] = &MetricType{
