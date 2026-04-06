@@ -4,7 +4,13 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
+	"io"
+	"os"
+	"strings"
+	"time"
 
 	"github.com/caarlos0/env"
 )
@@ -70,25 +76,106 @@ type AgentConfig struct {
 //	}
 //	fmt.Printf("Server will run on %s\n", cfg.Host)
 func NewConfigServer() (*ServerConfig, error) {
-	cfg := &ServerConfig{}
-	fs := flag.NewFlagSet("server-config", flag.ContinueOnError)
-
-	fs.StringVar(&cfg.Host, "a", "localhost:8080", "адрес HTTP-сервера")
-	fs.StringVar(&cfg.FileStorage, "f", "metrics_storage.json", "Путь до файла, куда сохраняются текущие значения")
-	fs.IntVar(&cfg.StoreInterval, "i", 300, "Интервал времени в секундах, по истечении которого текущие показания сервера сохраняются на диск")
-	fs.BoolVar(&cfg.Restore, "r", false, "Восстановление данных из файла, если он существует")
-	fs.StringVar(&cfg.DataBaseDsn, "d", "", "Строка подключения к базе данных")
-	fs.StringVar(&cfg.Key, "k", "", "Ключ")
-	fs.StringVar(&cfg.CryptoKey, "crypto-key", "", "Путь до PEM-файла приватного ключа или CRYPTO_KEY")
-
-	// Parse with nil args - just set defaults
-	if err := fs.Parse(nil); err != nil {
-		return nil, err
+	// Устанавливаем значения по умолчанию
+	cfg := &ServerConfig{
+		Host:          "localhost:8080",
+		FileStorage:   "metrics_storage.json",
+		StoreInterval: 300,
+		Restore:       false,
+		DataBaseDsn:   "",
+		MigratePath:   "",
+		Key:           "",
+		CryptoKey:     "",
+		AuditFile:     "",
+		AuditURL:      "",
 	}
 
+	// 1) прочитать путь к файлу конфигурации из флага -c/-config или переменной CONFIG
+	var cfgPath string
+	cfgFs := flag.NewFlagSet("cfgfile", flag.ContinueOnError)
+	cfgFs.SetOutput(io.Discard)
+	cfgFs.StringVar(&cfgPath, "c", "", "path to config JSON file")
+	cfgFs.StringVar(&cfgPath, "config", "", "path to config JSON file")
+	// фильтруем тестовые флаги перед парсингом
+	argsForCfg := os.Args[1:]
+	filteredCfg := make([]string, 0, len(argsForCfg))
+	for _, a := range argsForCfg {
+		if strings.HasPrefix(a, "-test.") {
+			continue
+		}
+		filteredCfg = append(filteredCfg, a)
+	}
+	_ = cfgFs.Parse(filteredCfg)
+	if cfgPath == "" {
+		cfgPath = os.Getenv("CONFIG")
+	}
+
+	// 2) если файл конфигурации указан — прочитать и применить значения (они будут иметь меньший приоритет чем env/flags)
+	if cfgPath != "" {
+		data, err := os.ReadFile(cfgPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read config file %s: %w", cfgPath, err)
+		}
+		// временная структура с pointer-полями, чтобы отличать отсутствующие поля
+		var fileCfg struct {
+			Address       *string `json:"address"`
+			Restore       *bool   `json:"restore"`
+			StoreInterval *string `json:"store_interval"`
+			StoreFile     *string `json:"store_file"`
+			DatabaseDsn   *string `json:"database_dsn"`
+			CryptoKey     *string `json:"crypto_key"`
+		}
+		if err := json.Unmarshal(data, &fileCfg); err != nil {
+			return nil, fmt.Errorf("invalid json config %s: %w", cfgPath, err)
+		}
+		if fileCfg.Address != nil && *fileCfg.Address != "" {
+			cfg.Host = *fileCfg.Address
+		}
+		if fileCfg.Restore != nil {
+			cfg.Restore = *fileCfg.Restore
+		}
+		if fileCfg.StoreInterval != nil && *fileCfg.StoreInterval != "" {
+			if d, err := time.ParseDuration(*fileCfg.StoreInterval); err == nil {
+				cfg.StoreInterval = int(d.Seconds())
+			}
+		}
+		if fileCfg.StoreFile != nil && *fileCfg.StoreFile != "" {
+			cfg.FileStorage = *fileCfg.StoreFile
+		}
+		if fileCfg.DatabaseDsn != nil {
+			cfg.DataBaseDsn = *fileCfg.DatabaseDsn
+		}
+		if fileCfg.CryptoKey != nil {
+			cfg.CryptoKey = *fileCfg.CryptoKey
+		}
+	}
+
+	// 3) применяем переменные окружения (они имеют приоритет над файлом конфигурации)
 	if err := env.Parse(cfg); err != nil {
 		return nil, err
 	}
+
+	// 4) наконец применяем флаги командной строки — они имеют самый высокий приоритет
+	fs := flag.NewFlagSet("server-config", flag.ContinueOnError)
+	// Не выводим usage в stdout/stderr (например, в тестах это ломало вывод примеров)
+	fs.SetOutput(io.Discard)
+	fs.StringVar(&cfg.Host, "a", cfg.Host, "адрес HTTP-сервера")
+	fs.StringVar(&cfg.FileStorage, "f", cfg.FileStorage, "Путь до файла, куда сохраняются текущие значения")
+	fs.IntVar(&cfg.StoreInterval, "i", cfg.StoreInterval, "Интервал времени в секундах, по истечении которого текущие показания сервера сохраняются на диск")
+	fs.BoolVar(&cfg.Restore, "r", cfg.Restore, "Восстановление данных из файла, если он существует")
+	fs.StringVar(&cfg.DataBaseDsn, "d", cfg.DataBaseDsn, "Строка подключения к базе данных")
+	fs.StringVar(&cfg.Key, "k", cfg.Key, "Ключ")
+	fs.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "Путь до PEM-файла приватного ключа или CRYPTO_KEY")
+	// парсим реальные args — удаляем специальные go test флаги, чтобы не ломать парсинг
+	argsForFlags := os.Args[1:]
+	filteredFlags := make([]string, 0, len(argsForFlags))
+	for _, a := range argsForFlags {
+		if strings.HasPrefix(a, "-test.") {
+			continue
+		}
+		filteredFlags = append(filteredFlags, a)
+	}
+	_ = fs.Parse(filteredFlags)
 
 	return cfg, nil
 }
@@ -112,24 +199,91 @@ func NewConfigServer() (*ServerConfig, error) {
 //	}
 //	fmt.Printf("Agent will connect to %s\n", cfg.Host)
 func NewConfigAgent() (*AgentConfig, error) {
-	cfg := &AgentConfig{}
-	fs := flag.NewFlagSet("agent-config", flag.ContinueOnError)
-
-	fs.StringVar(&cfg.Host, "a", "localhost:8080", "адрес хоста для отправки метрик")
-	fs.IntVar(&cfg.ReportInterval, "r", 10, "интервал отправки метрик в секундах")
-	fs.IntVar(&cfg.PollInterval, "p", 5, "интервал опроса метрик в секундах")
-	fs.StringVar(&cfg.Key, "k", "", "ключ для SHA256 хэширования")
-	fs.IntVar(&cfg.RateLimit, "l", 5, "лимит одновременных запросов")
-	fs.StringVar(&cfg.CryptoKey, "crypto-key", "", "Путь до PEM-файла публичного ключа или CRYPTO_KEY")
-
-	// Parse with nil args - just set defaults
-	if err := fs.Parse(nil); err != nil {
-		return nil, err
+	// значения по умолчанию
+	cfg := &AgentConfig{
+		Host:           "localhost:8080",
+		ReportInterval: 10,
+		PollInterval:   5,
+		Key:            "",
+		RateLimit:      5,
+		CryptoKey:      "",
 	}
 
+	// 1) получить путь к файлу конфигурации из -c/-config или env CONFIG
+	var cfgPath string
+	cfgFs := flag.NewFlagSet("cfgfile", flag.ContinueOnError)
+	cfgFs.SetOutput(io.Discard)
+	cfgFs.StringVar(&cfgPath, "c", "", "path to config JSON file")
+	cfgFs.StringVar(&cfgPath, "config", "", "path to config JSON file")
+	argsForCfg := os.Args[1:]
+	filteredCfg := make([]string, 0, len(argsForCfg))
+	for _, a := range argsForCfg {
+		if strings.HasPrefix(a, "-test.") {
+			continue
+		}
+		filteredCfg = append(filteredCfg, a)
+	}
+	_ = cfgFs.Parse(filteredCfg)
+	if cfgPath == "" {
+		cfgPath = os.Getenv("CONFIG")
+	}
+
+	// 2) прочитать файл (если указан) и применить значения с низким приоритетом
+	if cfgPath != "" {
+		data, err := os.ReadFile(cfgPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read config file %s: %w", cfgPath, err)
+		}
+		var fileCfg struct {
+			Address        *string `json:"address"`
+			ReportInterval *string `json:"report_interval"`
+			PollInterval   *string `json:"poll_interval"`
+			CryptoKey      *string `json:"crypto_key"`
+		}
+		if err := json.Unmarshal(data, &fileCfg); err != nil {
+			return nil, fmt.Errorf("invalid json config %s: %w", cfgPath, err)
+		}
+		if fileCfg.Address != nil && *fileCfg.Address != "" {
+			cfg.Host = *fileCfg.Address
+		}
+		if fileCfg.ReportInterval != nil && *fileCfg.ReportInterval != "" {
+			if d, err := time.ParseDuration(*fileCfg.ReportInterval); err == nil {
+				cfg.ReportInterval = int(d.Seconds())
+			}
+		}
+		if fileCfg.PollInterval != nil && *fileCfg.PollInterval != "" {
+			if d, err := time.ParseDuration(*fileCfg.PollInterval); err == nil {
+				cfg.PollInterval = int(d.Seconds())
+			}
+		}
+		if fileCfg.CryptoKey != nil {
+			cfg.CryptoKey = *fileCfg.CryptoKey
+		}
+	}
+
+	// 3) применяем env (они имеют приоритет над файлом)
 	if err := env.Parse(cfg); err != nil {
 		return nil, err
 	}
+
+	// 4) применяем флаги (самый высокий приоритет)
+	fs := flag.NewFlagSet("agent-config", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	fs.StringVar(&cfg.Host, "a", cfg.Host, "адрес хоста для отправки метрик")
+	fs.IntVar(&cfg.ReportInterval, "r", cfg.ReportInterval, "интервал отправки метрик в секундах")
+	fs.IntVar(&cfg.PollInterval, "p", cfg.PollInterval, "интервал опроса метрик в секундах")
+	fs.StringVar(&cfg.Key, "k", cfg.Key, "ключ для SHA256 хэширования")
+	fs.IntVar(&cfg.RateLimit, "l", cfg.RateLimit, "лимит одновременных запросов")
+	fs.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "Путь до PEM-файла публичного ключа или CRYPTO_KEY")
+	argsForFlags := os.Args[1:]
+	filteredFlags := make([]string, 0, len(argsForFlags))
+	for _, a := range argsForFlags {
+		if strings.HasPrefix(a, "-test.") {
+			continue
+		}
+		filteredFlags = append(filteredFlags, a)
+	}
+	_ = fs.Parse(filteredFlags)
 
 	return cfg, nil
 }
