@@ -29,6 +29,7 @@ type ServerConfig struct {
 	DataBaseDsn   string `env:"DATABASE_DSN"`
 	MigratePath   string `env:"MIGRATE_PATH"`
 	Key           string `env:"KEY"`
+	CryptoKey     string `env:"CRYPTO_KEY"`
 	AuditFile     string `env:"AUDIT_FILE"`
 	AuditURL      string `env:"AUDIT_URL"`
 }
@@ -47,6 +48,7 @@ type AgentConfig struct {
 	PollInterval   int    `env:"POLL_INTERVAL"`
 	Key            string `env:"KEY"`
 	RateLimit      int    `env:"RATE_LIMIT"`
+	CryptoKey      string `env:"CRYPTO_KEY"`
 }
 
 // NewConfigServer создает новую конфигурацию сервера, считывая из флагов и окружения.
@@ -77,6 +79,7 @@ func NewConfigServer() (*ServerConfig, error) {
 	fs.BoolVar(&cfg.Restore, "r", false, "Восстановление данных из файла, если он существует")
 	fs.StringVar(&cfg.DataBaseDsn, "d", "", "Строка подключения к базе данных")
 	fs.StringVar(&cfg.Key, "k", "", "Ключ")
+	fs.StringVar(&cfg.CryptoKey, "crypto-key", "", "Путь до PEM-файла приватного ключа или CRYPTO_KEY")
 
 	// Parse with nil args - just set defaults
 	if err := fs.Parse(nil); err != nil {
@@ -117,6 +120,7 @@ func NewConfigAgent() (*AgentConfig, error) {
 	fs.IntVar(&cfg.PollInterval, "p", 5, "интервал опроса метрик в секундах")
 	fs.StringVar(&cfg.Key, "k", "", "ключ для SHA256 хэширования")
 	fs.IntVar(&cfg.RateLimit, "l", 5, "лимит одновременных запросов")
+	fs.StringVar(&cfg.CryptoKey, "crypto-key", "", "Путь до PEM-файла публичного ключа или CRYPTO_KEY")
 
 	// Parse with nil args - just set defaults
 	if err := fs.Parse(nil); err != nil {
