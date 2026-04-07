@@ -27,6 +27,7 @@ import (
 //   - Key: ключ для SHA256 хэширования
 //   - AuditFile: путь к файлу аудита
 //   - AuditURL: URL для HTTP уведомлений аудита
+//   - TrustedSubnet: доверенная подсеть в формате CIDR (например "192.168.0.0/24")
 type ServerConfig struct {
 	Host          string `env:"ADDRESS"`
 	FileStorage   string `env:"FILE_STORAGE_PATH"`
@@ -38,6 +39,7 @@ type ServerConfig struct {
 	CryptoKey     string `env:"CRYPTO_KEY"`
 	AuditFile     string `env:"AUDIT_FILE"`
 	AuditURL      string `env:"AUDIT_URL"`
+	TrustedSubnet string `env:"TRUSTED_SUBNET"`
 }
 
 // AgentConfig конфигурация агента для сбора и отправки метрик.
@@ -124,6 +126,7 @@ func NewConfigServer() (*ServerConfig, error) {
 			StoreFile     *string `json:"store_file"`
 			DatabaseDsn   *string `json:"database_dsn"`
 			CryptoKey     *string `json:"crypto_key"`
+			TrustedSubnet *string `json:"trusted_subnet"`
 		}
 		if err := json.Unmarshal(data, &fileCfg); err != nil {
 			return nil, fmt.Errorf("invalid json config %s: %w", cfgPath, err)
@@ -148,6 +151,9 @@ func NewConfigServer() (*ServerConfig, error) {
 		if fileCfg.CryptoKey != nil {
 			cfg.CryptoKey = *fileCfg.CryptoKey
 		}
+		if fileCfg.TrustedSubnet != nil {
+			cfg.TrustedSubnet = *fileCfg.TrustedSubnet
+		}
 	}
 
 	// 3) применяем переменные окружения (они имеют приоритет над файлом конфигурации)
@@ -166,6 +172,7 @@ func NewConfigServer() (*ServerConfig, error) {
 	fs.StringVar(&cfg.DataBaseDsn, "d", cfg.DataBaseDsn, "Строка подключения к базе данных")
 	fs.StringVar(&cfg.Key, "k", cfg.Key, "Ключ")
 	fs.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "Путь до PEM-файла приватного ключа или CRYPTO_KEY")
+	fs.StringVar(&cfg.TrustedSubnet, "t", cfg.TrustedSubnet, "Доверенная подсеть в формате CIDR (TRUSTED_SUBNET)")
 	// парсим реальные args — удаляем специальные go test флаги, чтобы не ломать парсинг
 	argsForFlags := os.Args[1:]
 	filteredFlags := make([]string, 0, len(argsForFlags))
