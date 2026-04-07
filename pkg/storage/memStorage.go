@@ -9,11 +9,13 @@
 package storage
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
@@ -185,9 +187,19 @@ func (m *MStorage) IsConnectedDB() bool {
 //   - Завершает работу процесса
 func (m *MStorage) StorageGracefulStop(server *http.Server) {
 	stopChan := make(chan os.Signal, 1)
-	signal.Notify(stopChan, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(stopChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	go func() {
-		<-stopChan
+		sig := <-stopChan
+
+		log.Info().Msgf("Signal %s received, initiating graceful shutdown...", sig.String())
+
+		if server != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := server.Shutdown(ctx); err != nil {
+				log.Err(err).Msg("error during server shutdown")
+			}
+		}
 
 		switch {
 		case m.isStorageBD():
@@ -197,7 +209,6 @@ func (m *MStorage) StorageGracefulStop(server *http.Server) {
 		default:
 		}
 
-		log.Print("Signal received, initiating close storage and graceful shutdown ...")
-		os.Exit(0)
+		log.Info().Msg("Storage saved, shutdown complete")
 	}()
 }

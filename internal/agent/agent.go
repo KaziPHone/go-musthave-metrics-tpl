@@ -22,6 +22,8 @@ import (
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
+	cryptopkg "github.com/KaziPHone/go-musthave-metrics-tpl/pkg/crypto"
+	"crypto/rsa"
 )
 
 // Agent — основной клиент агента, собирающий метрики.
@@ -41,6 +43,7 @@ type Agent struct {
 	maxRetries     int
 	retryDelays    []time.Duration
 	key            string
+	pubKey         *rsa.PublicKey
 	rateLimit      int
 }
 
@@ -51,7 +54,7 @@ type Agent struct {
 //
 // Возвращает указатель на инициализированный Agent.
 func NewAgent(cfg config.AgentConfig) *Agent {
-	return &Agent{
+	a := &Agent{
 		pollInterval:   cfg.PollInterval,
 		reportInterval: cfg.ReportInterval,
 		key:            cfg.Key,
@@ -64,6 +67,18 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 		retryDelays:    []time.Duration{time.Second, 3 * time.Second, 5 * time.Second},
 		rateLimit:      cfg.RateLimit,
 	}
+
+	if cfg.CryptoKey != "" {
+		pk, err := cryptopkg.LoadPublicKeyFromFile(cfg.CryptoKey)
+		if err != nil {
+			// Если не удалось загрузить публичный ключ — продолжаем работу, но логируем ошибку в stdout
+			fmt.Printf("Не удалось загрузить публичный ключ: %v\n", err)
+		} else {
+			a.pubKey = pk
+		}
+	}
+
+	return a
 }
 
 // compress сжимает данные методом gzip.
@@ -120,13 +135,27 @@ func (a *Agent) sendMetric(metrics []models.Metrics) {
 			return
 		}
 
-		req, err := http.NewRequest("POST", a.url, bytes.NewReader(compressedData))
+		bodyToSend := compressedData
+		// если указан публичный ключ — шифруем данные перед отправкой
+		if a.pubKey != nil {
+			enc, err := cryptopkg.Encrypt(a.pubKey, compressedData)
+			if err != nil {
+				fmt.Printf("Ошибка шифрования данных: %v\n", err)
+				return
+			}
+			bodyToSend = enc
+		}
+
+		req, err := http.NewRequest("POST", a.url, bytes.NewReader(bodyToSend))
 		if err != nil {
 			fmt.Printf("Error creating request: %v\n", err)
 			return
 		}
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Content-Encoding", "gzip")
+		if a.pubKey != nil {
+			req.Header.Set("X-Encrypted", "rsa")
+		}
 
 		if a.key != "" {
 			req.Header.Set("HashSHA256", helpers.CalcSHA256Hash(compressedData))
