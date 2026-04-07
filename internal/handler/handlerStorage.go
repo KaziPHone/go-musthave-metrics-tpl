@@ -12,6 +12,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"time"
 
@@ -25,8 +26,9 @@ import (
 // Содержит ссылки на хранилище метрик и предмет аудита для отправки
 // уведомлений о изменениях.
 type Handler struct {
-	Storage      storage.IStorage
-	AuditSubject *audit.Subject
+	Storage       storage.IStorage
+	AuditSubject  *audit.Subject
+	TrustedSubnet *net.IPNet
 }
 
 // singleMetric декодирует JSON тело запроса в одну метрику.

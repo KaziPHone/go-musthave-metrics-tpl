@@ -27,6 +27,7 @@ import (
 //   - Key: ключ для SHA256 хэширования
 //   - AuditFile: путь к файлу аудита
 //   - AuditURL: URL для HTTP уведомлений аудита
+//   - TrustedSubnet: доверенная подсеть в формате CIDR (например "192.168.0.0/24")
 type ServerConfig struct {
 	Host          string `env:"ADDRESS"`
 	FileStorage   string `env:"FILE_STORAGE_PATH"`
@@ -38,6 +39,8 @@ type ServerConfig struct {
 	CryptoKey     string `env:"CRYPTO_KEY"`
 	AuditFile     string `env:"AUDIT_FILE"`
 	AuditURL      string `env:"AUDIT_URL"`
+	TrustedSubnet string `env:"TRUSTED_SUBNET"`
+	GRPCAddress   string `env:"GRPC_ADDRESS"`
 }
 
 // AgentConfig конфигурация агента для сбора и отправки метрик.
@@ -55,6 +58,7 @@ type AgentConfig struct {
 	Key            string `env:"KEY"`
 	RateLimit      int    `env:"RATE_LIMIT"`
 	CryptoKey      string `env:"CRYPTO_KEY"`
+	GRPCAddress    string `env:"GRPC_ADDRESS"`
 }
 
 // NewConfigServer создает новую конфигурацию сервера, считывая из флагов и окружения.
@@ -124,6 +128,8 @@ func NewConfigServer() (*ServerConfig, error) {
 			StoreFile     *string `json:"store_file"`
 			DatabaseDsn   *string `json:"database_dsn"`
 			CryptoKey     *string `json:"crypto_key"`
+			TrustedSubnet *string `json:"trusted_subnet"`
+			GRPCAddress   *string `json:"grpc_address"`
 		}
 		if err := json.Unmarshal(data, &fileCfg); err != nil {
 			return nil, fmt.Errorf("invalid json config %s: %w", cfgPath, err)
@@ -148,6 +154,12 @@ func NewConfigServer() (*ServerConfig, error) {
 		if fileCfg.CryptoKey != nil {
 			cfg.CryptoKey = *fileCfg.CryptoKey
 		}
+		if fileCfg.TrustedSubnet != nil {
+			cfg.TrustedSubnet = *fileCfg.TrustedSubnet
+		}
+		if fileCfg.GRPCAddress != nil {
+			cfg.GRPCAddress = *fileCfg.GRPCAddress
+		}
 	}
 
 	// 3) применяем переменные окружения (они имеют приоритет над файлом конфигурации)
@@ -166,6 +178,8 @@ func NewConfigServer() (*ServerConfig, error) {
 	fs.StringVar(&cfg.DataBaseDsn, "d", cfg.DataBaseDsn, "Строка подключения к базе данных")
 	fs.StringVar(&cfg.Key, "k", cfg.Key, "Ключ")
 	fs.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "Путь до PEM-файла приватного ключа или CRYPTO_KEY")
+	fs.StringVar(&cfg.TrustedSubnet, "t", cfg.TrustedSubnet, "Доверенная подсеть в формате CIDR (TRUSTED_SUBNET)")
+	fs.StringVar(&cfg.GRPCAddress, "g", cfg.GRPCAddress, "Адрес gRPC сервера (GRPC_ADDRESS)")
 	// парсим реальные args — удаляем специальные go test флаги, чтобы не ломать парсинг
 	argsForFlags := os.Args[1:]
 	filteredFlags := make([]string, 0, len(argsForFlags))
@@ -239,6 +253,7 @@ func NewConfigAgent() (*AgentConfig, error) {
 			ReportInterval *string `json:"report_interval"`
 			PollInterval   *string `json:"poll_interval"`
 			CryptoKey      *string `json:"crypto_key"`
+			GRPCAddress    *string `json:"grpc_address"`
 		}
 		if err := json.Unmarshal(data, &fileCfg); err != nil {
 			return nil, fmt.Errorf("invalid json config %s: %w", cfgPath, err)
@@ -259,6 +274,9 @@ func NewConfigAgent() (*AgentConfig, error) {
 		if fileCfg.CryptoKey != nil {
 			cfg.CryptoKey = *fileCfg.CryptoKey
 		}
+		if fileCfg.GRPCAddress != nil {
+			cfg.GRPCAddress = *fileCfg.GRPCAddress
+		}
 	}
 
 	// 3) применяем env (они имеют приоритет над файлом)
@@ -275,6 +293,7 @@ func NewConfigAgent() (*AgentConfig, error) {
 	fs.StringVar(&cfg.Key, "k", cfg.Key, "ключ для SHA256 хэширования")
 	fs.IntVar(&cfg.RateLimit, "l", cfg.RateLimit, "лимит одновременных запросов")
 	fs.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "Путь до PEM-файла публичного ключа или CRYPTO_KEY")
+	fs.StringVar(&cfg.GRPCAddress, "g", cfg.GRPCAddress, "Адрес gRPC сервера (GRPC_ADDRESS)")
 	argsForFlags := os.Args[1:]
 	filteredFlags := make([]string, 0, len(argsForFlags))
 	for _, a := range argsForFlags {
