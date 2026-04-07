@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net"
 	"net/http"
 
 	"crypto/rsa"
@@ -67,9 +68,21 @@ func main() {
 	router.Use(handlers.GzipResponseMiddleware)
 	router.Use(handlers.ShaMiddleware(cfg.Key))
 
+	// Разбираем доверенную подсеть (если указана) и передаём в Handler
+	var trustedNet *net.IPNet
+	if cfg.TrustedSubnet != "" {
+		_, ipnet, err := net.ParseCIDR(cfg.TrustedSubnet)
+		if err != nil {
+			log.Fatal().Err(err).Msgf("invalid trusted_subnet: %s", cfg.TrustedSubnet)
+		}
+		trustedNet = ipnet
+		log.Info().Msgf("Trusted subnet set to %s", cfg.TrustedSubnet)
+	}
+
 	h := &handlers.Handler{
 		Storage:      storage.NewMemStorage(*cfg),
 		AuditSubject: auditSubject,
+		TrustedSubnet: trustedNet,
 	}
 
 	router.Get("/", h.ListMetricsHandler)

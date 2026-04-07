@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand/v2"
+	"net"
 	"net/http"
 	"runtime"
 	"sync"
@@ -20,10 +21,11 @@ import (
 	models "github.com/KaziPHone/go-musthave-metrics-tpl/internal/model"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/pkg/helpers"
 
+	"crypto/rsa"
+
+	cryptopkg "github.com/KaziPHone/go-musthave-metrics-tpl/pkg/crypto"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
-	cryptopkg "github.com/KaziPHone/go-musthave-metrics-tpl/pkg/crypto"
-	"crypto/rsa"
 )
 
 // Agent — основной клиент агента, собирающий метрики.
@@ -45,6 +47,7 @@ type Agent struct {
 	key            string
 	pubKey         *rsa.PublicKey
 	rateLimit      int
+	localIP        string
 }
 
 // NewAgent создает новый экземпляр Agent с заданной конфигурацией.
@@ -66,6 +69,17 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 		maxRetries:     3,
 		retryDelays:    []time.Duration{time.Second, 3 * time.Second, 5 * time.Second},
 		rateLimit:      cfg.RateLimit,
+	}
+
+	if cfg.Host != "" {
+		if conn, err := net.Dial("udp", cfg.Host); err == nil {
+			if localAddr := conn.LocalAddr(); localAddr != nil {
+				if addr, ok := localAddr.(*net.UDPAddr); ok && addr.IP != nil {
+					a.localIP = addr.IP.String()
+				}
+			}
+			conn.Close()
+		}
 	}
 
 	if cfg.CryptoKey != "" {
@@ -91,13 +105,12 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 //   - error: ошибка при сжатии или nil
 //
 // Пример:
-//  
+//
 //	data := []byte("Hello, World!")
 //	compressed, err := compress(data)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-//
 func compress(data []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	gw := gzip.NewWriter(&buf)
@@ -155,6 +168,10 @@ func (a *Agent) sendMetric(metrics []models.Metrics) {
 		req.Header.Set("Content-Encoding", "gzip")
 		if a.pubKey != nil {
 			req.Header.Set("X-Encrypted", "rsa")
+		}
+
+		if a.localIP != "" {
+			req.Header.Set("X-Real-IP", a.localIP)
 		}
 
 		if a.key != "" {
@@ -374,8 +391,8 @@ func (a *Agent) copyMetrics() []models.Metrics {
 //   - stopCh: канал для корректной остановки агента
 //
 // Метод запускает:
-//   1. pollMetrics — горутина сбора метрик
-//   2. reportMetrics — горутина отправки метрик
+//  1. pollMetrics — горутина сбора метрик
+//  2. reportMetrics — горутина отправки метрик
 //
 // Обе горутины работают до получения сигнала из stopCh.
 func (a *Agent) Start(stopCh <-chan struct{}) {
@@ -412,7 +429,7 @@ func (a *Agent) GetAgentStats() int32 {
 func (a *Agent) GetMetricsMap() map[string]float64 {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	
+
 	result := make(map[string]float64, len(a.metrics))
 	for k, v := range a.metrics {
 		result[k] = v
