@@ -48,6 +48,7 @@ type Agent struct {
 	pubKey         *rsa.PublicKey
 	rateLimit      int
 	localIP        string
+	GRPCAddress    string
 }
 
 // NewAgent создает новый экземпляр Agent с заданной конфигурацией.
@@ -69,6 +70,7 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 		maxRetries:     3,
 		retryDelays:    []time.Duration{time.Second, 3 * time.Second, 5 * time.Second},
 		rateLimit:      cfg.RateLimit,
+		GRPCAddress:    cfg.GRPCAddress,
 	}
 
 	if cfg.Host != "" {
@@ -136,6 +138,13 @@ func compress(data []byte) ([]byte, error) {
 //   - metrics: срез метрик для отправки (см. models.Metrics)
 func (a *Agent) sendMetric(metrics []models.Metrics) {
 	for attempt := 0; ; attempt++ {
+		if a.GRPCAddress != "" {
+			if ok, err := sendViaGRPC(a, metrics); err != nil {
+				fmt.Printf("gRPC send error: %v\n", err)
+			} else if ok {
+				return
+			}
+		}
 		out, err := json.Marshal(metrics)
 		if err != nil {
 			fmt.Printf("Error marshalling: %v\n", err)

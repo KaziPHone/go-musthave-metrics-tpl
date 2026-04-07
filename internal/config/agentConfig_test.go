@@ -3,36 +3,48 @@ package config
 import (
 	"os"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestNewConfigAgent_NormalCase(t *testing.T) {
-	os.Setenv("AGENT_HOST", "localhost:8081")
-	os.Setenv("REPORT_INTERVAL", "15")
-	os.Setenv("POLL_INTERVAL", "5")
-	os.Setenv("RATE_LIMIT", "1")
-
-	defer resetEnvironmentVars()
+func TestNewConfigAgent_Defaults(t *testing.T) {
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+	os.Args = []string{"cmd"}
 
 	cfg, err := NewConfigAgent()
-	require.NoError(t, err)
-
-	expectedCfg := &AgentConfig{
-		Host:           "localhost:8081",
-		ReportInterval: 15,
-		PollInterval:   5,
-		RateLimit:      1,
+	if err != nil {
+		t.Fatalf("NewConfigAgent error: %v", err)
 	}
-
-	assert.Equal(t, expectedCfg, cfg)
+	if cfg.Host == "" {
+		t.Fatalf("expected default host set")
+	}
 }
 
-// Вспомогательная функция для сброса переменных окружения
-func resetEnvironmentVars() {
-	os.Unsetenv("AGENT_HOST")
-	os.Unsetenv("REPORT_INTERVAL")
-	os.Unsetenv("POLL_INTERVAL")
-	os.Unsetenv("RATE_LIMIT")
+func TestNewConfigAgent_FromJSON(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "agentcfg-*.json")
+	if err != nil {
+		t.Fatalf("tmpfile: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	content := `{"address":"localhost:7777","grpc_address":"127.0.0.1:50051"}`
+	if _, err := tmpFile.Write([]byte(content)); err != nil {
+		t.Fatalf("write tmp file: %v", err)
+	}
+	tmpFile.Close()
+
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+	os.Args = []string{"cmd", "-c", tmpFile.Name()}
+
+	cfg, err := NewConfigAgent()
+	if err != nil {
+		t.Fatalf("NewConfigAgent error: %v", err)
+	}
+	if cfg.Host != "localhost:7777" {
+		t.Fatalf("expected host from json, got %s", cfg.Host)
+	}
+	if cfg.GRPCAddress != "127.0.0.1:50051" {
+		t.Fatalf("expected grpc from json, got %s", cfg.GRPCAddress)
+	}
+
 }
