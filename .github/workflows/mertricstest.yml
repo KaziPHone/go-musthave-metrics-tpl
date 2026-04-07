@@ -60,7 +60,7 @@ jobs:
       - name: Build server binary
         run: |
           cd cmd/server
-          go build -buildvcs=false -o server
+          go build -ldflags="-X github.com/KaziPHone/go-musthave-metrics-tpl/internal/buildinfo.BuildVersion=${GITHUB_REF##*/} -X github.com/KaziPHone/go-musthave-metrics-tpl/internal/buildinfo.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X github.com/KaziPHone/go-musthave-metrics-tpl/internal/buildinfo.BuildCommit=${GITHUB_SHA}" -buildvcs=false -o server
 
       - name: "Code increment #1"
         if: |
@@ -86,7 +86,7 @@ jobs:
       - name: Build agent binary
         run: |
           cd cmd/agent
-          go build -buildvcs=false  -o agent
+          go build -ldflags="-X github.com/KaziPHone/go-musthave-metrics-tpl/internal/buildinfo.BuildVersion=${GITHUB_REF##*/} -X github.com/KaziPHone/go-musthave-metrics-tpl/internal/buildinfo.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X github.com/KaziPHone/go-musthave-metrics-tpl/internal/buildinfo.BuildCommit=${GITHUB_SHA}" -buildvcs=false -o agent
 
       - name: "Code increment #2"
         if: |

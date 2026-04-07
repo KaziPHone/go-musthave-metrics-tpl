@@ -1,4 +1,4 @@
-// Package config предоставляет конфигурацию сервера.
+// Package config предоставляет конфигурацию для сервера и агента.
 //
 // Конфигурация читается из флагов командной строки и переменных окружения.
 package config
@@ -33,12 +33,28 @@ type ServerConfig struct {
 	AuditURL      string `env:"AUDIT_URL"`
 }
 
+// AgentConfig конфигурация агента для сбора и отправки метрик.
+//
+// Поля:
+//   - Host: адрес хоста, куда отправляются метрики
+//   - ReportInterval: интервал отправки метрик в секундах
+//   - PollInterval: интервал опроса метрик в секундах
+//   - Key: ключ для SHA256 хэширования
+//   - RateLimit: лимит одновременных запросов
+type AgentConfig struct {
+	Host           string `env:"AGENT_HOST"`
+	ReportInterval int    `env:"REPORT_INTERVAL"`
+	PollInterval   int    `env:"POLL_INTERVAL"`
+	Key            string `env:"KEY"`
+	RateLimit      int    `env:"RATE_LIMIT"`
+}
+
 // NewConfigServer создает новую конфигурацию сервера, считывая из флагов и окружения.
 //
 // Приоритет:
-//   1. Флаги командной строки
-//   2. Переменные окружения
-//   3. Значения по умолчанию
+//  1. Флаги командной строки
+//  2. Переменные окружения
+//  3. Значения по умолчанию
 //
 // Возвращает:
 //   - *ServerConfig: инициализированная конфигурация
@@ -61,6 +77,46 @@ func NewConfigServer() (*ServerConfig, error) {
 	fs.BoolVar(&cfg.Restore, "r", false, "Восстановление данных из файла, если он существует")
 	fs.StringVar(&cfg.DataBaseDsn, "d", "", "Строка подключения к базе данных")
 	fs.StringVar(&cfg.Key, "k", "", "Ключ")
+
+	// Parse with nil args - just set defaults
+	if err := fs.Parse(nil); err != nil {
+		return nil, err
+	}
+
+	if err := env.Parse(cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+// NewConfigAgent создает новую конфигурацию агента, считывая из флагов и окружения.
+//
+// Приоритет:
+//  1. Флаги командной строки
+//  2. Переменные окружения
+//  3. Значения по умолчанию
+//
+// Возвращает:
+//   - *AgentConfig: инициализированная конфигурация
+//   - error: ошибка при парсинге или nil
+//
+// Пример:
+//
+//	cfg, err := config.NewConfigAgent()
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Printf("Agent will connect to %s\n", cfg.Host)
+func NewConfigAgent() (*AgentConfig, error) {
+	cfg := &AgentConfig{}
+	fs := flag.NewFlagSet("agent-config", flag.ContinueOnError)
+
+	fs.StringVar(&cfg.Host, "a", "localhost:8080", "адрес хоста для отправки метрик")
+	fs.IntVar(&cfg.ReportInterval, "r", 10, "интервал отправки метрик в секундах")
+	fs.IntVar(&cfg.PollInterval, "p", 5, "интервал опроса метрик в секундах")
+	fs.StringVar(&cfg.Key, "k", "", "ключ для SHA256 хэширования")
+	fs.IntVar(&cfg.RateLimit, "l", 5, "лимит одновременных запросов")
 
 	// Parse with nil args - just set defaults
 	if err := fs.Parse(nil); err != nil {

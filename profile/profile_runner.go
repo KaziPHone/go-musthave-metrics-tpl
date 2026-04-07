@@ -31,14 +31,14 @@ func main() {
 	profileFile, err := os.Create("profiles/base.pprof")
 	if err != nil {
 		fmt.Printf("Ошибка при создании файла профиля: %v\n", err)
-		os.Exit(1)
+		return
 	}
 	defer profileFile.Close()
 
 	// Запускаем профилирование памяти
 	if err := pprof.WriteHeapProfile(profileFile); err != nil {
 		fmt.Printf("Ошибка при записи профиля кучи: %v\n", err)
-		os.Exit(1)
+		return
 	}
 
 	fmt.Println("Профиль кучи сохранен в profiles/base.pprof")

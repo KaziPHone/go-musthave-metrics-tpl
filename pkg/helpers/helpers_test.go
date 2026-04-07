@@ -189,7 +189,7 @@ func TestGetClientIP_IPv6WithZoneID(t *testing.T) {
 
 func TestGetClientIP_LongXForwardedFor(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/", nil)
-	req.Header.Set("X-Forwarded-For", strings.Repeat("192.168.1.1, ", 100) + "203.0.113.195")
+	req.Header.Set("X-Forwarded-For", strings.Repeat("192.168.1.1, ", 100)+"203.0.113.195")
 	req.Header.Del("X-Real-IP")
 
 	ip := GetClientIP(req)
@@ -285,7 +285,7 @@ func TestGetMetrics_BufferNotModified(t *testing.T) {
 	// Запускаем снова - должно вернуть исходные значения
 	metrics2 := []models.Metrics{{ID: "test2"}}
 	result2 := GetMetrics(metrics2)
-	
+
 	if len(result2) == 1 && result2[0] != "test2" {
 		t.Errorf("expected 'test2', got '%s' - буфер пула был затронут", result2[0])
 	}

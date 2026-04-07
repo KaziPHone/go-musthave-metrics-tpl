@@ -194,8 +194,9 @@ func (d *dataBase) getMetrics() map[string]*MetricType {
 	for rows.Next() {
 		var metric models.Metrics
 
-		if err := rows.Scan(&metric.ID, &metric.MType, &metric.Value, &metric.Delta); err != nil {
-			log.Print(err)
+		scanErr := rows.Scan(&metric.ID, &metric.MType, &metric.Value, &metric.Delta)
+		if scanErr != nil {
+			log.Print(scanErr)
 		}
 
 		m := MetricType{

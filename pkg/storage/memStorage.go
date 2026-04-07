@@ -44,19 +44,19 @@ type IStorage interface {
 	//   - typeMetric: тип метрики ("gauge" или "counter")
 	//   - value: значение метрики (float64 для gauge, int64 для counter)
 	UpdateMetric(metricName, typeMetric string, value interface{})
-	
+
 	// UpdatesMetrics обновляет несколько метрик за раз.
 	//
 	// Параметры:
 	//   - metrics: срез метрик для обновления
 	UpdatesMetrics([]models.Metrics)
-	
+
 	// ListMetrics возвращает все метрики.
 	//
 	// Возвращает:
 	//   - map[string]*MetricType: карта метрик по имени
 	ListMetrics() map[string]*MetricType
-	
+
 	// GetMetric возвращает метрику по имени.
 	//
 	// Параметры:
@@ -66,13 +66,13 @@ type IStorage interface {
 	//   - *MetricType: метрика или nil если не найдена
 	//   - bool: true если метрика найдена
 	GetMetric(metricName string) (*MetricType, bool)
-	
+
 	// StorageGracefulStop останавливает хранилище с сохранением данных.
 	//
 	// Параметры:
 	//   - server: сервер HTTP для корректной остановки
 	StorageGracefulStop(server *http.Server)
-	
+
 	// IsConnectedDB проверяет подключение к базе данных.
 	//
 	// Возвращает:
@@ -112,9 +112,9 @@ type MetricType struct {
 //   - IStorage: реализация интерфейса хранилища
 //
 // Приоритет выбора хранилища:
-//   1. PostgreSQL (если DataBaseDsn задан)
-//   2. File (если FileStorage задан)
-//   3. Memory (по умолчанию)
+//  1. PostgreSQL (если DataBaseDsn задан)
+//  2. File (если FileStorage задан)
+//  3. Memory (по умолчанию)
 func NewMemStorage(cfg config.ServerConfig) IStorage {
 	db := newDataBase(cfg.DataBaseDsn, cfg.MigratePath)
 	db.initDataBase()
@@ -152,9 +152,9 @@ func (m *MStorage) isStorageFile() bool {
 // setStorage устанавливает тип хранилища на основе конфигурации.
 //
 // Приоритет:
-//   1. PostgreSQL (если DataBaseDsn задан)
-//   2. File (если FileStorage задан)
-//   3. Memory (по умолчанию)
+//  1. PostgreSQL (если DataBaseDsn задан)
+//  2. File (если FileStorage задан)
+//  3. Memory (по умолчанию)
 func (m *MStorage) setStorage() {
 	switch {
 	case m.dataBase.dataBaseDsn != "":

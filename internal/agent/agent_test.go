@@ -240,8 +240,8 @@ func TestAgent_sendMetric_HTTPError(t *testing.T) {
 		PollInterval: 1, // Минимальные интервалы для быстрого тестирования
 	}
 	agent := NewAgent(cfg)
-	agent.maxRetries = 1                      // Только 1 повторная попытка вместо 3
-	agent.retryDelays = []time.Duration{0}    // Нет задержки между попытками
+	agent.maxRetries = 1                   // Только 1 повторная попытка вместо 3
+	agent.retryDelays = []time.Duration{0} // Нет задержки между попытками
 
 	testMetrics := []models.Metrics{{ID: "test", MType: models.Gauge, Value: floatPtr(1.0)}}
 

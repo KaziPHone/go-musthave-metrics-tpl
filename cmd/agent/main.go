@@ -2,18 +2,20 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/agent"
+	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/buildinfo"
 	"github.com/KaziPHone/go-musthave-metrics-tpl/internal/config"
 )
 
 func main() {
-	cfg, err := config.NewConfigAgent()
+	log.Printf("Build version: %s", buildinfo.GetVersion())
+	log.Printf("Build date: %s", buildinfo.GetDate())
+	log.Printf("Build commit: %s", buildinfo.GetCommit())
 
+	cfg, err := config.NewConfigAgent()
 	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	agentMetric := agent.NewAgent(*cfg)
